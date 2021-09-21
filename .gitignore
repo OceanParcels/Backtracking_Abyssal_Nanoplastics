@@ -7,7 +7,7 @@ data/
 *.pkl
 # C extensions
 *.so
-
+biblio/
 # Distribution / packaging
 .Python
 build/
