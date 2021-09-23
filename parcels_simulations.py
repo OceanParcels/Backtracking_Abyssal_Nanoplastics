@@ -42,15 +42,15 @@ start_time = datetime.strptime('2010-12-20 12:00:00', '%Y-%m-%d %H:%M:%S')
 
 filenames = {'U': {'lon': mesh_mask,
                    'lat': mesh_mask,
-                   'depth': wfiles[0],
+                   'depth': wfiles2[0],
                    'data': ufiles2},
              'V': {'lon': mesh_mask,
                    'lat': mesh_mask,
-                   'depth': wfiles[0],
+                   'depth': wfiles2[0],
                    'data': vfiles2},
              'W': {'lon': mesh_mask,
                    'lat': mesh_mask,
-                   'depth': wfiles[0],
+                   'depth': wfiles2[0],
                    'data': wfiles2}}
 
 variables = {'U': 'uo',
