@@ -17,7 +17,7 @@ output_path = '/scratch/cpierard/backtrack_loc0.nc'
 ufiles = sorted(glob(data_path+'means/ORCA*U.nc'))
 vfiles = sorted(glob(data_path+'means/ORCA*V.nc'))
 wfiles = sorted(glob(data_path+'means/ORCA*W.nc'))
-mesh_mask = data_path + 'coordinates.nc'
+mesh_mask = data_path + 'domain/coordinates.nc'
 
 # removes the weird files that don't have date.
 ufiles2 = []
