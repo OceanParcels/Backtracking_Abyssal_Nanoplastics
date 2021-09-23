@@ -1,13 +1,13 @@
-from parcels import FieldSet, ParticleSet, JITParticle
-from parcels import ErrorCode, AdvectionRK4_3D
 from glob import glob
 import numpy as np
+from parcels import FieldSet, ParticleSet, JITParticle
+from parcels import ErrorCode, AdvectionRK4_3D
+
 from datetime import timedelta
 # from os import path
 from datetime import datetime
 # from parcels import ParcelsRandom
 # import math
-
 
 # data_path = 'data/NEMO/'
 # output_path = 'data/test2.nc'
@@ -19,29 +19,45 @@ vfiles = sorted(glob(data_path+'ORCA*V.nc'))
 wfiles = sorted(glob(data_path+'ORCA*W.nc'))
 mesh_mask = data_path + 'coordinates.nc'
 
+# removes the weird files that don't have date.
+ufiles2 = []
+vfiles2 = []
+wfiles2 = []
+for i in range(len(ufiles)):
+    if len(ufiles[i].split('_')[2]) > 11:
+        ufiles2.append(ufiles[i])
+
+for i in range(len(vfiles)):
+    if len(vfiles[i].split('_')[2]) > 11:
+        vfiles2.append(vfiles[i])
+
+for i in range(len(wfiles)):
+    if len(wfiles[i].split('_')[2]) > 11:
+        wfiles2.append(wfiles[i])
+
 n_points = 10000
 # start_time = datetime.strptime('2007-08-22 12:00:00', '%Y-%m-%d %H:%M:%S')
 
-start_time = datetime.strptime('2010-12-20 12:00:00',
-# '%Y-%m-%d %H:%M:%S')
+start_time = datetime.strptime('2010-12-20 12:00:00', '%Y-%m-%d %H:%M:%S')
 
-filenames={'U': {'lon': mesh_mask,
+filenames = {'U': {'lon': mesh_mask,
                    'lat': mesh_mask,
                    'depth': wfiles[0],
-                   'data': ufiles},
+                   'data': ufiles2},
              'V': {'lon': mesh_mask,
                    'lat': mesh_mask,
                    'depth': wfiles[0],
-                   'data': vfiles},
+                   'data': vfiles2},
              'W': {'lon': mesh_mask,
                    'lat': mesh_mask,
                    'depth': wfiles[0],
-                   'data': wfiles}}
+                   'data': wfiles2}}
 
-variables={'U': 'uo',
+variables = {'U': 'uo',
              'V': 'vo',
              'W': 'wo'}
-dimensions={'U': {'lon': 'glamf',
+
+dimensions = {'U': {'lon': 'glamf',
                     'lat': 'gphif',
                     'depth': 'depthw',
                     'time': 'time_counter'},
@@ -54,26 +70,26 @@ dimensions={'U': {'lon': 'glamf',
                     'depth': 'depthw',
                     'time': 'time_counter'}}
 
-indices={'lat': range(500, 1400), 'lon': range(2500, 3800)}
-fieldset=FieldSet.from_nemo(filenames, variables, dimensions,
+indices = {'lat': range(500, 1400), 'lon': range(2500, 3800)}
+fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
                               allow_time_extrapolation=True,
                               indices=indices)
 
 
-lon_cluster=[-6.287]*n_points
-lat_cluster=[-32.171]*n_points
-depth_cluster=[70]*n_points  # closest level to -5000m
-date_cluster=[start_time]*n_points
+lon_cluster = [-6.287]*n_points
+lat_cluster = [-32.171]*n_points
+depth_cluster = [70]*n_points  # closest level to -5000m
+date_cluster = [start_time]*n_points
 
 # for i in range(n_points):
 #     random_date = start_time + timedelta(days=np.random.randint(0, 365),
 #                                          hours=np.random.randint(0, 23))
 #     date_cluster[i] = random_date
 
-lon_cluster=np.array(lon_cluster)+(np.random.random(len(lon_cluster))-0.5)/12
-lat_cluster=np.array(lat_cluster)+(np.random.random(len(lat_cluster))-0.5)/12
+lon_cluster = np.array(lon_cluster)+(np.random.random(len(lon_cluster))-0.5)/12
+lat_cluster = np.array(lat_cluster)+(np.random.random(len(lat_cluster))-0.5)/12
 
-pset=ParticleSet.from_list(fieldset=fieldset, pclass=JITParticle,
+pset = ParticleSet.from_list(fieldset=fieldset, pclass=JITParticle,
                              lon=lon_cluster,
                              lat=lat_cluster,
                              depth=depth_cluster,
@@ -84,10 +100,10 @@ def delete_particle(particle, fieldset, time):
     particle.delete()
 
 
-kernels=pset.Kernel(AdvectionRK4_3D)
+kernels = pset.Kernel(AdvectionRK4_3D)
 
 # Output file
-output_file=pset.ParticleFile(name=output_path,
+output_file = pset.ParticleFile(name=output_path,
                                 outputdt=timedelta(hours=24))
 
 pset.execute(kernels,
