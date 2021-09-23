@@ -10,13 +10,13 @@ from datetime import datetime
 # import math
 
 # data_path = 'data/NEMO/'
-# output_path = 'data/test2.nc'
+# output_path = 'data/test3.nc'
 data_path = '/data/oceanparcels/input_data/NEMO-MEDUSA/ORCA0083-N006/'
 output_path = '/scratch/cpierard/backtrack_loc0.nc'
 
-ufiles = sorted(glob(data_path+'ORCA*U.nc'))
-vfiles = sorted(glob(data_path+'ORCA*V.nc'))
-wfiles = sorted(glob(data_path+'ORCA*W.nc'))
+ufiles = sorted(glob(data_path+'means/ORCA*U.nc'))
+vfiles = sorted(glob(data_path+'means/ORCA*V.nc'))
+wfiles = sorted(glob(data_path+'means/ORCA*W.nc'))
 mesh_mask = data_path + 'coordinates.nc'
 
 # removes the weird files that don't have date.
