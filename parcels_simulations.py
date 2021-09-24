@@ -12,7 +12,7 @@ from datetime import datetime
 # data_path = 'data/NEMO/'
 # output_path = 'data/test3.nc'
 data_path = '/data/oceanparcels/input_data/NEMO-MEDUSA/ORCA0083-N006/'
-output_path = '/scratch/cpierard/backtrack_loc0_5000m.nc'
+output_path = '/scratch/cpierard/backtrack_loc0_column.nc'
 
 ufiles = sorted(glob(data_path+'means/ORCA*U.nc'))
 vfiles = sorted(glob(data_path+'means/ORCA*V.nc'))
@@ -79,7 +79,9 @@ fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
 
 lon_cluster = [-6.287]*n_points
 lat_cluster = [-32.171]*n_points
-depth_cluster = [5000]*n_points  # closest level to -5000m
+# depth_cluster = [5000]*n_points  # closest level to -5000m
+depth_cluster = np.linspace(1, 5000, n_points)
+
 date_cluster = [start_time]*n_points
 
 # for i in range(n_points):
@@ -87,8 +89,8 @@ date_cluster = [start_time]*n_points
 #                                          hours=np.random.randint(0, 23))
 #     date_cluster[i] = random_date
 
-lon_cluster = np.array(lon_cluster)+(np.random.random(len(lon_cluster))-0.5)/12
-lat_cluster = np.array(lat_cluster)+(np.random.random(len(lat_cluster))-0.5)/12
+# lon_cluster = np.array(lon_cluster)+(np.random.random(len(lon_cluster))-0.5)/12
+# lat_cluster = np.array(lat_cluster)+(np.random.random(len(lat_cluster))-0.5)/12
 
 pset = ParticleSet.from_list(fieldset=fieldset, pclass=JITParticle,
                              lon=lon_cluster,
