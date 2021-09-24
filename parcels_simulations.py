@@ -12,7 +12,7 @@ from datetime import datetime
 # data_path = 'data/NEMO/'
 # output_path = 'data/test3.nc'
 data_path = '/data/oceanparcels/input_data/NEMO-MEDUSA/ORCA0083-N006/'
-output_path = '/scratch/cpierard/backtrack_loc0.nc'
+output_path = '/scratch/cpierard/backtrack_loc0_5000m.nc'
 
 ufiles = sorted(glob(data_path+'means/ORCA*U.nc'))
 vfiles = sorted(glob(data_path+'means/ORCA*V.nc'))
@@ -78,7 +78,7 @@ fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
 
 lon_cluster = [-6.287]*n_points
 lat_cluster = [-32.171]*n_points
-depth_cluster = [70]*n_points  # closest level to -5000m
+depth_cluster = [5000]*n_points  # closest level to -5000m
 date_cluster = [start_time]*n_points
 
 # for i in range(n_points):
@@ -108,7 +108,7 @@ output_file = pset.ParticleFile(name=output_path,
 
 pset.execute(kernels,
              output_file=output_file,
-             runtime=timedelta(days=365),
+             runtime=timedelta(days=365*5),
              dt=-timedelta(hours=1),
              recovery={ErrorCode.ErrorOutOfBounds: delete_particle})
 
