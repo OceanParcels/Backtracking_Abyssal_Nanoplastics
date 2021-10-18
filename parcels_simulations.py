@@ -77,7 +77,7 @@ fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
                               indices=indices)
 
 
-lon_cluster = [-6.287]*n_points
+lon_cluster = [6.287]*n_points
 lat_cluster = [-32.171]*n_points
 # depth_cluster = [5000]*n_points  # closest level to -5000m
 depth_cluster = np.linspace(1, 5000, n_points)
