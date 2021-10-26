@@ -14,13 +14,13 @@ from datetime import datetime
 # output_path = 'data/test3.nc'
 
 # Gemini - NEMO fieldsets
-# data_path = '/data/oceanparcels/input_data/NEMO-MEDUSA/ORCA0083-N006/'
-# output_path = '/scratch/cpierard/backtrack_loc0_column.nc'
+data_path = '/data/oceanparcels/input_data/NEMO-MEDUSA/ORCA0083-N006/'
+output_path = '/scratch/cpierard/backtrack_loc0_column.nc'
 
 # Lorenz - MOi fields
-data_path = '/storage/shared/oceanparcels/input_data/MOi/2019/'
-output_data = '/storage/shared/oceanparcels/output_data/' + \
-    'data_Claudio/backtrack_loc0_column.nc'
+# data_path = '/storage/shared/oceanparcels/input_data/MOi/2019/'
+# output_data = '/storage/shared/oceanparcels/output_data/' + \
+#     'data_Claudio/backtrack_loc0_column.nc'
 
 # Local path - MOi
 data_path = 'data/MOi/'
