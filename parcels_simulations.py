@@ -101,7 +101,7 @@ dimensions = {'U': {'lon': 'glamf',
 indices = {'lat': range(750, 1300), 'lon': range(2900, 4000)}
 # indices = {'lat': range(500, 1400), 'lon': range(2500, 3800)}
 fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
-                              allow_time_extrapolation=False)
+                              allow_time_extrapolation=True)
 # indices=indices)
 
 # indices=indices)
