@@ -1,65 +1,33 @@
 from glob import glob
 import numpy as np
 from parcels import FieldSet, ParticleSet, JITParticle
-from parcels import ErrorCode, AdvectionRK4_3D
-
+from parcels import ErrorCode, AdvectionRK4_3D, Variable
 from datetime import timedelta
-# from os import path
 from datetime import datetime
-# from parcels import ParcelsRandom
-# import math
 
-# local path - NEMO
-# data_path = 'data/NEMO/'
-# output_path = 'data/test3.nc'
-
-# Gemini - NEMO fieldsets
-data_path = '/data/oceanparcels/input_data/NEMO-MEDUSA/ORCA0083-N006/'
-output_path = '/scratch/cpierard/backtrack_loc0_column.nc'
+n_points = 1000
+sim_time = 10 #days
 
 # Lorenz - MOi fields
-# data_path = '/storage/shared/oceanparcels/input_data/MOi/2019/'
-# output_data = '/storage/shared/oceanparcels/output_data/' + \
-#     'data_Claudio/backtrack_loc0_column.nc'
+data_path = '/storage/shared/oceanparcels/input_data/MOi/2019/'
+output_path = '/storage/shared/oceanparcels/output_data/' + \
+    'data_Claudio/backtrack_loc0_column_biotest1.nc'
 
-# Local path - MOi
-data_path = 'data/MOi/'
-output_data = 'data/test-moi-1.nc'
+# Physical Fields
+ufiles = sorted(glob(data_path + 'psy4v3r1-daily_U*.nc'))
+vfiles = sorted(glob(data_path + 'psy4v3r1-daily_V*.nc'))
+wfiles = sorted(glob(data_path + 'psy4v3r1-daily_W*.nc'))
+tfiles = sorted(glob(data_path + 'psy4v3r1-daily_T_*.nc'))    
+sfiles = sorted(glob(data_path + 'psy4v3r1-daily_S_*.nc'))  
 
-ufiles = sorted(glob(data_path+'psy4v3r1-daily_U*.nc'))
-vfiles = sorted(glob(data_path+'psy4v3r1-daily_V*.nc'))
-wfiles = sorted(glob(data_path+'psy4v3r1-daily_W*.nc'))
-mesh_mask = data_path + 'domain/coordinates.nc'
+# Bio Fields
+phfiles = sorted(glob(data_path + 'biomer4v2r1-weekly_ph_*.nc'))
 
-print(ufiles, vfiles, wfiles)
+# Phys mask
+mesh_mask = '/storage/shared/oceanparcels/input_data/MOi/domain_ORCA0083-N006/coordinates.nc'
 
-# # removes the weird files that don't have date.
-# ufiles2 = []
-# vfiles2 = []
-# wfiles2 = []
-# for i in range(len(ufiles)):
-#     if len(ufiles[i].split('_')[2]) > 11:
-#         ufiles2.append(ufiles[i])
-#
-# for i in range(len(vfiles)):
-#     if len(vfiles[i].split('_')[2]) > 11:
-#         vfiles2.append(vfiles[i])
-#
-# for i in range(len(wfiles)):
-#     if len(wfiles[i].split('_')[2]) > 11:
-#         wfiles2.append(wfiles[i])
-# filenames = {'U': {'lon': mesh_mask,
-#                    'lat': mesh_mask,
-#                    'depth': wfiles2[0],
-#                    'data': ufiles2},
-#              'V': {'lon': mesh_mask,
-#                    'lat': mesh_mask,
-#                    'depth': wfiles2[0],
-#                    'data': vfiles2},
-#              'W': {'lon': mesh_mask,
-#                    'lat': mesh_mask,
-#                    'depth': wfiles2[0],
-#                    'data': wfiles2}}
+#Bio mask
+mesh_mask_bio = '/storage/shared/oceanparcels/input_data/MOi/domain_ORCA025-N006/coordinates.nc'
 
 filenames = {'U': {'lon': mesh_mask,
                    'lat': mesh_mask,
@@ -72,18 +40,26 @@ filenames = {'U': {'lon': mesh_mask,
              'W': {'lon': mesh_mask,
                    'lat': mesh_mask,
                    'depth': wfiles[0],
-                   'data': wfiles}}
+                   'data': wfiles},
+            'temperature': {'lon': mesh_mask, 
+                            'lat': mesh_mask, 
+                            'depth': wfiles[0], 
+                            'data': tfiles},
+            'salinity': {'lon': mesh_mask, 
+                             'lat': mesh_mask, 
+                             'depth': wfiles[0], 
+                             'data': sfiles}}
 
-n_points = 10000
-# start_time = datetime.strptime('2007-08-22 12:00:00', '%Y-%m-%d %H:%M:%S')
 
-# start_time = datetime.strptime('2010-12-20 12:00:00', '%Y-%m-%d %H:%M:%S')
 start_time = datetime.strptime('2019-12-02 12:00:00', '%Y-%m-%d %H:%M:%S')
 # psy4v3r1-daily_2D_2019-01-01.nc
 
+## Phys
 variables = {'U': 'vozocrtx',
              'V': 'vomecrty',
-             'W': 'vovecrtz'}
+             'W': 'vovecrtz',
+             'temperature': 'votemper',
+             'salinity': 'vovecrtz'}
 
 dimensions = {'U': {'lon': 'glamf',
                     'lat': 'gphif',
@@ -98,24 +74,49 @@ dimensions = {'U': {'lon': 'glamf',
                     'depth': 'depthw',
                     'time': 'time_counter'}}
 
-indices = {'lat': range(750, 1300), 'lon': range(2900, 4000)}
-# indices = {'lat': range(500, 1400), 'lon': range(2500, 3800)}
-fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
-                              allow_time_extrapolation=False)
-# indices=indices)
+dimensions['temperature'] = {'lon': 'glamf', 
+                                  'lat': 'gphif',
+                                  'depth': 'depthw', 
+                                  'time': 'time_counter'}
 
-# indices=indices)
+dimensions['salinity'] = {'lon': 'glamf', 
+                              'lat': 'gphif',
+                              'depth': 'depthw', 
+                              'time': 'time_counter'}
+## Bio
+filenames_bio = {'ph': {'lon': mesh_mask_bio, 
+                              'lat': mesh_mask_bio, 
+                              'depth': wfiles[0], 
+                              'data': phfiles}}
+
+variables_bio = {'ph': 'ph'}
+
+dimensions_bio = {'ph': {'lon': 'glamf', 
+                               'lat': 'gphif', 
+                               'depth': 'depthw', 
+                               'time': 'time_counter'}}
+
+
+indices = {'lat': range(750, 1300), 'lon': range(2900, 4000)}
+
+
+fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
+                              allow_time_extrapolation=False,
+                              indices=indices)
+
+bio_fieldset = FieldSet.from_nemo(filenames_bio,variables_bio,dimensions_bio)
+
+fieldset.add_field(bio_fieldset.ph)
+
+class PlasticParticle(JITParticle):
+    temperature = Variable('temperature', dtype=np.float32, initial=0)
+    salinity = Variable('salinity', dtype=np.float32, initial=0)
+    ph = Variable('ph', dtype=np.float32, initial=0)
+    
 lon_cluster = [6.287]*n_points
 lat_cluster = [-32.171]*n_points
-# depth_cluster = [5000]*n_points  # closest level to -5000m
 depth_cluster = np.linspace(1, 5000, n_points)
-
 date_cluster = [start_time]*n_points
-
-# for i in range(n_points):
-#     random_date = start_time + timedelta(days=np.random.randint(0, 365),
-#                                          hours=np.random.randint(0, 23))
-#     date_cluster[i] = random_date
 
 # lon_cluster = np.array(lon_cluster)+(np.random.random(len(lon_cluster))-0.5)/12
 # lat_cluster = np.array(lat_cluster)+(np.random.random(len(lat_cluster))-0.5)/12
@@ -130,8 +131,17 @@ pset = ParticleSet.from_list(fieldset=fieldset, pclass=JITParticle,
 def delete_particle(particle, fieldset, time):
     particle.delete()
 
+    
+def SampleField(particle, fielset, time):
+    particle.temperature = fieldset.temperature[time, particle.depth, 
+                                               particle.lat, particle.lon]
+    particle.salinity = fieldset.salinity[time, particle.depth, 
+                                               particle.lat, particle.lon]
+    particle.ph = fieldset.ph[time, particle.depth, 
+                                               particle.lat, particle.lon]
 
-kernels = pset.Kernel(AdvectionRK4_3D)
+
+kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(SampleField) 
 
 # Output file
 output_file = pset.ParticleFile(name=output_path,
@@ -139,7 +149,7 @@ output_file = pset.ParticleFile(name=output_path,
 
 pset.execute(kernels,
              output_file=output_file,
-             runtime=timedelta(days=1),
+             runtime=timedelta(days=sim_time),
              dt=-timedelta(hours=1),
              recovery={ErrorCode.ErrorOutOfBounds: delete_particle})
 
