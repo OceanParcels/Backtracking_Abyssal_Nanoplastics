@@ -8,7 +8,7 @@ from datetime import datetime
 
 n_points = 10000
 
-sim_time = 364 #days backwards
+sim_time = 300 #days backwards
 
 # Lorenz - MOi fields
 data_path = '/storage/shared/oceanparcels/input_data/MOi/2019/'
