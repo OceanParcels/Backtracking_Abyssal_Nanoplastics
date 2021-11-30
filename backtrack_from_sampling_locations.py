@@ -1,18 +1,20 @@
 from glob import glob
 import numpy as np
 from parcels import FieldSet, ParticleSet, JITParticle
-from parcels import ErrorCode, AdvectionRK4_3D, Variable
+from parcels import ErrorCode, AdvectionRK4_3D, Variable, Field
 from parcels.application_kernels.TEOSseawaterdensity import PolyTEOS10_bsq
 from datetime import timedelta
 from datetime import datetime
+import xarray as xr
 
 bio_ON = False
-n_points = 10
-sim_time = 10 # days backwards
+n_points = 10000
+sim_time = 630 # days backwards
 particle_size = 1e-6 # meters
 particle_density = 1380 # kg/m3
-initial_depth = 5179 # 5 # 60 # 5179
+initial_depth = 5 # 5 # 60 # 5179
 start_time = datetime.strptime('2019-12-30 12:00:00', '%Y-%m-%d %H:%M:%S')
+series = 1
 
 if bio_ON:
     bio_data_path = '/storage/shared/oceanparcels/input_data/MOi/biomer4v2r1/'
@@ -33,8 +35,9 @@ if bio_ON:
 # Lorenz - MOi fields
 data_path = '/storage/shared/oceanparcels/input_data/MOi/2019/'
 output_path = '/storage/shared/oceanparcels/output_data/' + \
-    'data_Claudio/SA_loc01_5179m.nc'
+    f'data_Claudio/SA_{initial_depth}m_s{series:02d}.nc'
 
+print(f'SA_{initial_depth}m_s{series:02d}.nc')
 ufiles = []
 vfiles = []
 wfiles = []
@@ -42,7 +45,7 @@ tfiles = []
 sfiles = [] 
 twoDfiles = []
 
-for i in range(9, 10):
+for i in range(8, 10):
     ufiles = ufiles + sorted(glob(data_path + f'psy4v3r1-daily_U_201{i}*.nc'))
     vfiles = vfiles + sorted(glob(data_path + f'psy4v3r1-daily_V_201{i}*.nc'))
     wfiles = wfiles + sorted(glob(data_path + f'psy4v3r1-daily_W_201{i}*.nc'))
@@ -66,11 +69,11 @@ filenames = {'U': {'lon': mesh_mask,
                    'depth': wfiles[0],
                    'data': wfiles}}
 
-filenames['temperature'] = {'lon': mesh_mask, 
+filenames['cons_temperature'] = {'lon': mesh_mask, 
                                  'lat': mesh_mask, 
                                  'depth': wfiles[0], 
                                  'data': tfiles}
-filenames['salinity'] = {'lon': mesh_mask, 
+filenames['abs_salinity'] = {'lon': mesh_mask, 
                              'lat': mesh_mask, 
                              'depth': wfiles[0], 
                              'data': sfiles}
@@ -131,7 +134,11 @@ if bio_ON:
 # fieldset.add_constant('g', -9.81)
 fieldset.add_constant('viscosity', 1e-6)
 fieldset.add_constant('particle_density', particle_density)
+bathy = xr.load_dataset(bathy_file)
 
+fieldset.add_field(Field('bathymetry', bathy['Bathymetry'].values,
+                         lon=bathy['nav_lon'].values, lat=bathy['nav_lat'].values,
+                         mesh='spherical'))
 
 class PlasticParticle(JITParticle):
     cons_temperature = Variable('cons_temperature', dtype=np.float32, initial=fieldset.cons_temperature)
