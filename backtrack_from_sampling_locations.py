@@ -36,12 +36,12 @@ for i in range(8, 10):
     tfiles = tfiles + sorted(glob(data_path + f'psy4v3r1-daily_T_201{i}*.nc'))
     sfiles = sfiles + sorted(glob(data_path + f'psy4v3r1-daily_S_201{i}*.nc'))
     twoDfiles = twoDfiles + sorted(glob(data_path +
-                                   f'psy4v3r1-daily_2D_201{i}*.nc'))
+                                        f'psy4v3r1-daily_2D_201{i}*.nc'))
 
 mesh_mask = '/storage/shared/oceanparcels/input_data/MOi/' + \
             'domain_ORCA0083-N006/coordinates.nc'
 bathy_file = '/storage/shared/oceanparcels/input_data/MOi/' + \
-            'domain_ORCA0083-N006/bathymetry_ORCA12_V3.3.nc'
+    'domain_ORCA0083-N006/bathymetry_ORCA12_V3.3.nc'
 
 filenames = {'U': {'lon': mesh_mask,
                    'lat': mesh_mask,
@@ -203,11 +203,12 @@ def SinkingVelocity(particle, fieldset, time):
     dt = particle.dt
     beta = 3*rho_f/(2*rho_p + rho_f)
     tau_p = alpha*alpha/(3*beta*nu)
+    tolerance = 10
 
     seafloor = fieldset.bathymetry[time, particle.depth,
                                    particle.lat, particle.lon]
 
-    if particle.depth < seafloor and particle.depth > 0:
+    if (particle.depth - 10) < seafloor and (particle.depth + 10) > 0:
         v_s = (1 - beta)*g*tau_p
     else:
         v_s = 0
@@ -217,7 +218,7 @@ def SinkingVelocity(particle, fieldset, time):
 
 
 kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(SampleField) + \
-          pset.Kernel(PolyTEOS10_bsq) + pset.Kernel(SinkingVelocity)
+    pset.Kernel(PolyTEOS10_bsq) + pset.Kernel(SinkingVelocity)
 
 # Output file
 output_file = pset.ParticleFile(name=output_path,
