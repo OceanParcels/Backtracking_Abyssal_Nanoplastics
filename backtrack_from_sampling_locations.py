@@ -8,18 +8,18 @@ from datetime import datetime
 import xarray as xr
 
 bio_ON = False
-n_points = 10000
-sim_time = 630  # days backwards
+n_points = 1000
+sim_time = 300  # days backwards
 particle_size = 1e-6  # meters
 particle_density = 1380  # kg/m3
 initial_depth = 5  # 5 # 60 # 5179
 start_time = datetime.strptime('2019-12-30 12:00:00', '%Y-%m-%d %H:%M:%S')
-series = 1
+series = 2
 
 # Lorenz - MOi fields
 data_path = '/storage/shared/oceanparcels/input_data/MOi/2019/'
 output_path = '/storage/shared/oceanparcels/output_data/' + \
-    f'data_Claudio/SA_{initial_depth}m_s{series:02d}.nc'
+    f'data_Claudio/SA_{initial_depth}m_s{series:02d}_t{sim_time}.nc'
 
 print(f'SA_{initial_depth}m_s{series:02d}.nc')
 ufiles = []
@@ -130,6 +130,7 @@ fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
                               allow_time_extrapolation=False,
                               indices=indices)
 
+print('Fieldset loaded')
 if bio_ON:
     bio_fieldset = FieldSet.from_nemo(filenames_bio, variables_bio,
                                       dimensions_bio)
@@ -177,6 +178,7 @@ pset = ParticleSet.from_list(fieldset=fieldset, pclass=PlasticParticle,
                              depth=depth_cluster,
                              time=date_cluster)
 
+print('Particle Set Created')
 
 def delete_particle(particle, fieldset, time):
     particle.delete()
@@ -219,6 +221,8 @@ def SinkingVelocity(particle, fieldset, time):
 
 kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(SampleField) + \
     pset.Kernel(PolyTEOS10_bsq) + pset.Kernel(SinkingVelocity)
+
+print('Kernels loaded')
 
 # Output file
 output_file = pset.ParticleFile(name=output_path,
