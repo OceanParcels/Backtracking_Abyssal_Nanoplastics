@@ -5,6 +5,7 @@ from parcels import ErrorCode, AdvectionRK4_3D, Variable, Field
 from parcels.application_kernels.TEOSseawaterdensity import PolyTEOS10_bsq
 from datetime import timedelta
 from datetime import datetime
+import kernels
 import xarray as xr
 
 bio_ON = False
@@ -148,7 +149,7 @@ fieldset.add_field(Field('bathymetry', bathy['Bathymetry'].values,
                          mesh='spherical'))
 
 
-class PlasticParticle(JITParticle):
+class PlasticParticle(ScipyParticle):
     cons_temperature = Variable('cons_temperature', dtype=np.float32,
                                 initial=0)
     abs_salinity = Variable('abs_salinity', dtype=np.float32,
@@ -185,41 +186,6 @@ print('Particle Set Created')
 def delete_particle(particle, fieldset, time):
     particle.delete()
 
-
-def SampleField(particle, fielset, time):
-    particle.cons_temperature = fieldset.cons_temperature[time, particle.depth,
-                                                          particle.lat,
-                                                          particle.lon]
-    particle.abs_salinity = fieldset.abs_salinity[time, particle.depth,
-                                                  particle.lat, particle.lon]
-    particle.mld = fieldset.mld[time, particle.depth,
-                                particle.lat, particle.lon]
-#     particle.ph = fieldset.ph[time, particle.depth,
-#                                                particle.lat, particle.lon]
-
-
-def SinkingVelocity(particle, fieldset, time):
-    rho_p = fieldset.particle_density
-    rho_f = particle.density
-    nu = fieldset.viscosity
-    alpha = particle.alpha
-    g = 9.81
-    dt = particle.dt
-    beta = 3*rho_f/(2*rho_p + rho_f)
-    tau_p = alpha*alpha/(3*beta*nu)
-    tolerance = 10
-
-    seafloor = fieldset.bathymetry[time, particle.depth,
-                                   particle.lat, particle.lon]
-
-    if (particle.depth - 10) < seafloor and (particle.depth + 10) > 0:
-        v_s = (1 - beta)*g*tau_p
-    else:
-        v_s = 0
-
-    particle.v_s = v_s
-    particle.depth = particle.depth + v_s*dt
-# pset.execute(sample_kernel, dt=0)
 
 kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(SampleField) + \
     pset.Kernel(PolyTEOS10_bsq) + pset.Kernel(SinkingVelocity)
