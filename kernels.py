@@ -57,7 +57,6 @@ def GrowParticle(particle, fieldset, time):
 def SinkingVelocity_RK4(particle, fieldset, time):
     def polyTEOS10_bsq(Z, SA, CT):
         Z = - Z #particle.depth  # note: use negative depths!
-
         SAu = 40 * 35.16504 / 35
         CTu = 40
         Zu = 1e4
@@ -177,8 +176,9 @@ def SinkingVelocity_RK4(particle, fieldset, time):
         v_s_4 = (1 - beta)*g*tau_p
     
         v_s = (v_s_1 + 2 * v_s_2 + 2 * v_s_3 + v_s_4)/6.
-        
+    
     else:
         v_s = 0
-        
+    
     particle.depth = particle.depth + v_s*dt
+    particle.v_s = v_s

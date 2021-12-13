@@ -17,7 +17,7 @@ start_time = datetime.strptime('2019-12-30 12:00:00', '%Y-%m-%d %H:%M:%S')
 series = 2
 
 # Lorenz - MOi fields
-data_path = '/storage/shared/oceanparcels/input_data/MOi/2019/'
+data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
 output_path = '/storage/shared/oceanparcels/output_data/' + \
     f'data_Claudio/SA_{initial_depth}m_s{series:02d}_t{sim_time}.nc'
 

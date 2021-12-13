@@ -1,26 +1,29 @@
 from glob import glob
 import numpy as np
-from parcels import FieldSet, ParticleSet, JITParticle
+from parcels import FieldSet, ParticleSet, ScipyParticle
 from parcels import ErrorCode, AdvectionRK4_3D, Variable, Field
 from parcels.application_kernels.TEOSseawaterdensity import PolyTEOS10_bsq
 from datetime import timedelta
 from datetime import datetime
 import kernels
 import xarray as xr
+import sys
 
-bio_ON = False
-n_points = 10000
-sim_time = 600  # days backwards
+# bio_ON = False
+
+RKx = sys.argv[1]  # 'RK4' or 'RK1'
+n_points = 100
+sim_time = 300  # days backwards
 particle_size = 1e-6  # meters
 particle_density = 1380  # kg/m3
-initial_depth = 5179  # 5 # 60 # 5179
-start_time = datetime.strptime('2019-12-30 12:00:00', '%Y-%m-%d %H:%M:%S')
+initial_depth = 1  # 5 # 60 # 5179
+start_time = datetime.strptime('2018-01-01 12:00:00', '%Y-%m-%d %H:%M:%S')
 series = 2
 
 # Lorenz - MOi fields
-data_path = '/storage/shared/oceanparcels/input_data/MOi/2019/'
+data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
 output_path = '/storage/shared/oceanparcels/output_data/' + \
-    f'data_Claudio/SA_{initial_depth}m_s{series:02d}_t{sim_time}.nc'
+    f'data_Claudio/{RKx}_{initial_depth}m_t{sim_time}.nc'
 
 print(f'SA_{initial_depth}m_s{series:02d}.nc')
 ufiles = []
@@ -30,7 +33,7 @@ tfiles = []
 sfiles = []
 twoDfiles = []
 
-for i in range(8, 10):
+for i in range(8, 9):
     ufiles = ufiles + sorted(glob(data_path + f'psy4v3r1-daily_U_201{i}*.nc'))
     vfiles = vfiles + sorted(glob(data_path + f'psy4v3r1-daily_V_201{i}*.nc'))
     wfiles = wfiles + sorted(glob(data_path + f'psy4v3r1-daily_W_201{i}*.nc'))
@@ -39,6 +42,7 @@ for i in range(8, 10):
     twoDfiles = twoDfiles + sorted(glob(data_path +
                                         f'psy4v3r1-daily_2D_201{i}*.nc'))
 
+    
 mesh_mask = '/storage/shared/oceanparcels/input_data/MOi/' + \
             'domain_ORCA0083-N006/coordinates.nc'
 bathy_file = '/storage/shared/oceanparcels/input_data/MOi/' + \
@@ -70,7 +74,6 @@ filenames['mld'] = {'lon': mesh_mask,
                     'lat': mesh_mask,
                     'depth': twoDfiles[0],
                     'data': twoDfiles}
-
 
 variables = {'U': 'vozocrtx',
              'V': 'vomecrty',
@@ -108,22 +111,6 @@ dimensions['mld'] = {'lon': 'glamf',
                             'depth': 'deptht',
                             'time': 'time_counter'}
 
-if bio_ON:
-    bio_data_path = '/storage/shared/oceanparcels/input_data/MOi/biomer4v2r1/'
-    phfiles = sorted(glob(bio_data_path + 'biomer4v2r1-weekly_ph_2019*.nc'))
-    mesh_mask_bio = '/storage/shared/oceanparcels/input_data/MOi/' + \
-                    'domain_ORCA025-N006/coordinates.nc'
-    filenames_bio = {'ph': {'lon': mesh_mask_bio,
-                            'lat': mesh_mask_bio,
-                            'depth': wfiles[0],
-                            'data': phfiles}}
-
-    variables_bio = {'ph': 'ph'}
-
-    dimensions_bio = {'ph': {'lon': 'glamf',
-                             'lat': 'gphif',
-                             'depth': 'depthw',
-                             'time': 'time_counter'}}
 
 indices = {'lat': range(750, 1300), 'lon': range(2900, 4000)}
 
@@ -132,10 +119,6 @@ fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
                               indices=indices)
 
 print('Fieldset loaded')
-if bio_ON:
-    bio_fieldset = FieldSet.from_nemo(filenames_bio, variables_bio,
-                                      dimensions_bio)
-    fieldset.add_field(bio_fieldset.ph)
 
 # fieldset.add_constant('grow_rate', 1e-6)
 # fieldset.add_constant('g', -9.81)
@@ -149,6 +132,9 @@ fieldset.add_field(Field('bathymetry', bathy['Bathymetry'].values,
                          mesh='spherical'))
 
 
+particle_size = np.linspace(1e-5, 1e-3, n_points)
+
+
 class PlasticParticle(ScipyParticle):
     cons_temperature = Variable('cons_temperature', dtype=np.float32,
                                 initial=0)
@@ -158,17 +144,12 @@ class PlasticParticle(ScipyParticle):
     alpha = Variable('alpha', dtype=np.float32, initial=particle_size)
     density = Variable('density', dtype=np.float32, initial=1035)
     v_s = Variable('v_s', dtype=np.float32, initial=0)
+    alpha = Variable('alpha', dtype=np.float32, initial=particle_size)
 
-#     beta = Variable('beta', dtype=np.float32, initial=0)
-#     tau_p = v_s = Variable('tau_p', dtype=np.float32, initial=0)
-#     if bio_ON:
-#         ph = Variable('ph', dtype=np.float32, initial=0)
 
 
 lon_cluster = [6.287]*n_points
 lat_cluster = [-32.171]*n_points
-lon_cluster = np.array(lon_cluster)+(np.random.random(len(lon_cluster))-0.5)/24
-lat_cluster = np.array(lat_cluster)+(np.random.random(len(lat_cluster))-0.5)/24
 
 depth_cluster = np.ones(n_points)*initial_depth  # meters
 date_cluster = [start_time]*n_points
@@ -185,21 +166,25 @@ print('Particle Set Created')
 
 def delete_particle(particle, fieldset, time):
     particle.delete()
+    
+if RKx == 'RK4':
+    v_s_kernel = pset.Kernel(kernels.SinkingVelocity_RK4)
+elif RKx == 'RK1':
+    v_s_kernel = pset.Kernel(kernels.SinkingVelocity)
 
-
-kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(SampleField) + \
-    pset.Kernel(PolyTEOS10_bsq) + pset.Kernel(SinkingVelocity)
+kernels = pset.Kernel(kernels.SampleField) + \
+    pset.Kernel(PolyTEOS10_bsq) + v_s_kernel
 
 print('Kernels loaded')
 
 # Output file
 output_file = pset.ParticleFile(name=output_path,
-                                outputdt=timedelta(hours=24))
+                                outputdt=timedelta(hours=12))
 
 pset.execute(kernels,
              output_file=output_file,
              runtime=timedelta(days=sim_time),
-             dt=-timedelta(hours=1),
+             dt=timedelta(hours=1),
              recovery={ErrorCode.ErrorOutOfBounds: delete_particle})
 
 output_file.close()
