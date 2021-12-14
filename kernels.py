@@ -19,8 +19,8 @@ def SinkingVelocity(particle, fieldset, time):
 
     particle.v_s = v_s
     particle.depth = particle.depth + v_s*dt
-    
-    
+
+
 def SampleField(particle, fielset, time):
     particle.cons_temperature = fieldset.cons_temperature[time, particle.depth,
                                                           particle.lat,
@@ -29,34 +29,39 @@ def SampleField(particle, fielset, time):
                                                   particle.lat, particle.lon]
     particle.mld = fieldset.mld[time, particle.depth,
                                 particle.lat, particle.lon]
-    
-    
+
+
 def AdvectionRK4_1D(particle, fieldset, time):
     """
-    Advection of particles using fourth-order Runge-Kutta integration including vertical velocity.
-    Function needs to be converted to Kernel object before execution
+    Advection of particles using fourth-order Runge-Kutta integration including
+    vertical velocity.Function needs to be converted to Kernel object before
+    execution.
     """
-    (w1) = fieldset.W[time, particle.depth, particle.lat, particle.lon]
+    (w1) = fieldset.W[time, particle.depth,
+                      particle.lat, particle.lon]
     depth_1 = particle.depth + w1 * .5 * particle.dt
-    
-    (w2) = fieldset.W[time + .5 * particle.dt, depth_1, particle.lat, particle.lon]
+
+    (w2) = fieldset.W[time + .5 * particle.dt, depth_1,
+                      particle.lat, particle.lon]
     depth_2 = particle.depth + w2 * .5 * particle.dt
-    
-    (w3) = fieldset.W[time + .5 * particle.dt, depth_2, particle.lat, particle.lon]
+
+    (w3) = fieldset.W[time + .5 * particle.dt, depth_2,
+                      particle.lat, particle.lon]
     depth_3 = particle.depth + w3 * particle.dt
-    
-    (w4) = fieldset.W[time + particle.dt, depth_3, particle.lat, particle.lon]
+
+    (w4) = fieldset.W[time + particle.dt, depth_3,
+                      particle.lat, particle.lon]
 
     particle.depth += (w1 + 2 * w2 + 2 * w3 + w4) / 6. * particle.dt
-    
-    
+
+
 def GrowParticle(particle, fieldset, time):
     particle.alpha = particle.alpha - fieldset.grow_rate*particle.dt
-    
-    
+
+
 def SinkingVelocity_RK4(particle, fieldset, time):
     def polyTEOS10_bsq(Z, SA, CT):
-        Z = - Z #particle.depth  # note: use negative depths!
+        Z = - Z  # particle.depth  # note: use negative depths!
         SAu = 40 * 35.16504 / 35
         CTu = 40
         Zu = 1e4
@@ -118,26 +123,28 @@ def SinkingVelocity_RK4(particle, fieldset, time):
         zz = -Z / Zu
         rz3 = R013 * tt + R103 * ss + R003
         rz2 = (R022 * tt + R112 * ss + R012) * tt + (R202 * ss + R102) * ss + R002
-        rz1 = (((R041 * tt + R131 * ss + R031) * tt + (R221 * ss + R121) * ss + R021) * tt + ((R311 * ss + R211) * ss + R111) * ss + R011) * tt + (((R401 * ss + R301) * ss + R201) * ss + R101) * ss + R001
-        rz0 = (((((R060 * tt + R150 * ss + R050) * tt + (R240 * ss + R140) * ss + R040) * tt + ((R330 * ss + R230) * ss + R130) * ss + R030) * tt + (((R420 * ss + R320) * ss + R220) * ss + R120) * ss + R020) * tt + ((((R510 * ss + R410) * ss + R310) * ss + R210) * ss + R110) * ss + R010) * tt + (((((R600 * ss + R500) * ss + R400) * ss + R300) * ss + R200) * ss + R100) * ss + R000
+        rz1 = (((R041 * tt + R131 * ss + R031) * tt + (R221 * ss + R121) * ss + R021) * tt + ((R311 * ss + R211)
+                                                                                              * ss + R111) * ss + R011) * tt + (((R401 * ss + R301) * ss + R201) * ss + R101) * ss + R001
+        rz0 = (((((R060 * tt + R150 * ss + R050) * tt + (R240 * ss + R140) * ss + R040) * tt + ((R330 * ss + R230) * ss + R130) * ss + R030) * tt + (((R420 * ss + R320) * ss + R220) * ss + R120)
+                * ss + R020) * tt + ((((R510 * ss + R410) * ss + R310) * ss + R210) * ss + R110) * ss + R010) * tt + (((((R600 * ss + R500) * ss + R400) * ss + R300) * ss + R200) * ss + R100) * ss + R000
         density = ((rz3 * zz + rz2) * zz + rz1) * zz + rz0
 
         return density
-    
+
     g = 9.81
     dt = particle.dt
     rho_p = fieldset.particle_density
-    
+
     nu = fieldset.viscosity
     alpha = particle.alpha
     seafloor = fieldset.bathymetry[time, particle.depth,
                                    particle.lat, particle.lon]
-    
+
     if particle.depth < seafloor and particle.depth > 0:
         T1 = fieldset.cons_temperature[time, particle.depth,
-                                  particle.lat, particle.lon]
+                                       particle.lat, particle.lon]
         S1 = fieldset.abs_salinity[time, particle.depth,
-                                 particle.lat, particle.lon]
+                                   particle.lat, particle.lon]
         depth_1 = particle.depth
         # --
         rho_f = polyTEOS10_bsq(depth_1, S1, T1)
@@ -147,38 +154,38 @@ def SinkingVelocity_RK4(particle, fieldset, time):
         # --
         depth_2 = depth_1 + v_s_1*dt*0.5
         T2 = fieldset.cons_temperature[time + .5*dt, depth_1,
-                                  particle.lat, particle.lon]
+                                       particle.lat, particle.lon]
         S2 = fieldset.abs_salinity[time + .5*dt, depth_1,
-                                 particle.lat, particle.lon]
+                                   particle.lat, particle.lon]
         rho_f = polyTEOS10_bsq(depth_1, S2, T2)
         beta = 3*rho_f/(2*rho_p + rho_f)
-        tau_p = alpha*alpha/(3*beta*nu) ## alpha*alpha
+        tau_p = alpha*alpha/(3*beta*nu)  # alpha*alpha
         v_s_2 = (1 - beta)*g*tau_p
         # --
         depth_3 = depth_2 + v_s_2*dt*0.5
         T3 = fieldset.cons_temperature[time + .5*dt, depth_2,
-                                  particle.lat, particle.lon]
+                                       particle.lat, particle.lon]
         S3 = fieldset.abs_salinity[time + .5*dt, depth_2,
-                                 particle.lat, particle.lon]
+                                   particle.lat, particle.lon]
         rho_f = polyTEOS10_bsq(depth_3, S3, T3)
         beta = 3*rho_f/(2*rho_p + rho_f)
-        tau_p = alpha*alpha/(3*beta*nu) ## alpha*alpha
+        tau_p = alpha*alpha/(3*beta*nu)  # alpha*alpha
         v_s_3 = (1 - beta)*g*tau_p
         # --
         depth_4 = depth_3 + v_s_3*dt
         T4 = fieldset.cons_temperature[time + dt, depth_3,
-                                  particle.lat, particle.lon]
+                                       particle.lat, particle.lon]
         S4 = fieldset.abs_salinity[time + dt, depth_3,
-                                 particle.lat, particle.lon]
+                                   particle.lat, particle.lon]
         rho_f = polyTEOS10_bsq(depth_4, S4, T4)
         beta = 3*rho_f/(2*rho_p + rho_f)
-        tau_p = alpha*alpha/(3*beta*nu) ## alpha*alpha
+        tau_p = alpha*alpha/(3*beta*nu)  # alpha*alpha
         v_s_4 = (1 - beta)*g*tau_p
-    
+
         v_s = (v_s_1 + 2 * v_s_2 + 2 * v_s_3 + v_s_4)/6.
-    
+
     else:
         v_s = 0
-    
+
     particle.depth = particle.depth + v_s*dt
     particle.v_s = v_s

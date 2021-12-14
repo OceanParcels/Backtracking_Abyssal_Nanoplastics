@@ -42,7 +42,7 @@ for i in range(8, 9):
     twoDfiles = twoDfiles + sorted(glob(data_path +
                                         f'psy4v3r1-daily_2D_201{i}*.nc'))
 
-    
+
 mesh_mask = '/storage/shared/oceanparcels/input_data/MOi/' + \
             'domain_ORCA0083-N006/coordinates.nc'
 bathy_file = '/storage/shared/oceanparcels/input_data/MOi/' + \
@@ -147,7 +147,6 @@ class PlasticParticle(ScipyParticle):
     alpha = Variable('alpha', dtype=np.float32, initial=particle_size)
 
 
-
 lon_cluster = [6.287]*n_points
 lat_cluster = [-32.171]*n_points
 
@@ -164,9 +163,11 @@ pset = ParticleSet.from_list(fieldset=fieldset, pclass=PlasticParticle,
 
 print('Particle Set Created')
 
+
 def delete_particle(particle, fieldset, time):
     particle.delete()
-    
+
+
 if RKx == 'RK4':
     v_s_kernel = pset.Kernel(kernels.SinkingVelocity_RK4)
 elif RKx == 'RK1':
