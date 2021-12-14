@@ -1,6 +1,6 @@
 from glob import glob
 import numpy as np
-from parcels import FieldSet, ParticleSet, ScipyParticle
+from parcels import FieldSet, ParticleSet, ScipyParticle, JITParticle
 from parcels import ErrorCode, AdvectionRK4_3D, Variable, Field
 from parcels.application_kernels.TEOSseawaterdensity import PolyTEOS10_bsq
 from datetime import timedelta
@@ -13,7 +13,7 @@ import sys
 
 RKx = sys.argv[1]  # 'RK4' or 'RK1'
 n_points = 100
-sim_time = 300  # days backwards
+sim_time = 365 # days backwards
 particle_size = 1e-6  # meters
 particle_density = 1380  # kg/m3
 initial_depth = 1  # 5 # 60 # 5179
@@ -32,6 +32,7 @@ wfiles = []
 tfiles = []
 sfiles = []
 twoDfiles = []
+k_zfiles = []
 
 for i in range(8, 9):
     ufiles = ufiles + sorted(glob(data_path + f'psy4v3r1-daily_U_201{i}*.nc'))
@@ -41,6 +42,8 @@ for i in range(8, 9):
     sfiles = sfiles + sorted(glob(data_path + f'psy4v3r1-daily_S_201{i}*.nc'))
     twoDfiles = twoDfiles + sorted(glob(data_path +
                                         f'psy4v3r1-daily_2D_201{i}*.nc'))
+    k_zfiles = k_zfiles + sorted(glob(data_path +
+                                        f'psy4v3r1-daily_KZ_201{i}*.nc'))
 
 
 mesh_mask = '/storage/shared/oceanparcels/input_data/MOi/' + \
@@ -75,6 +78,11 @@ filenames['mld'] = {'lon': mesh_mask,
                     'depth': twoDfiles[0],
                     'data': twoDfiles}
 
+filenames['K_z'] = {'lon': mesh_mask,
+                    'lat': mesh_mask,
+                    'depth': k_zfiles[0],
+                    'data': k_zfiles}
+
 variables = {'U': 'vozocrtx',
              'V': 'vomecrty',
              'W': 'vovecrtz'}
@@ -82,6 +90,7 @@ variables = {'U': 'vozocrtx',
 variables['cons_temperature'] = 'votemper'
 variables['abs_salinity'] = 'vosaline'
 variables['mld'] = 'somxlavt'
+variables['K_z'] = 'votkeavt'
 
 dimensions = {'U': {'lon': 'glamf',
                     'lat': 'gphif',
@@ -111,6 +120,11 @@ dimensions['mld'] = {'lon': 'glamf',
                             'depth': 'deptht',
                             'time': 'time_counter'}
 
+dimensions['K_z'] = {'lon': 'glamf',
+                            'lat': 'gphif',
+                            'depth': 'depthw',
+                            'time': 'time_counter'}
+
 
 indices = {'lat': range(750, 1300), 'lon': range(2900, 4000)}
 
@@ -135,16 +149,34 @@ fieldset.add_field(Field('bathymetry', bathy['Bathymetry'].values,
 particle_size = np.linspace(1e-5, 1e-3, n_points)
 
 
-class PlasticParticle(ScipyParticle):
-    cons_temperature = Variable('cons_temperature', dtype=np.float32,
+if RKx == 'RK4':
+    class PlasticParticle(ScipyParticle):
+        cons_temperature = Variable('cons_temperature', dtype=np.float32,
+                                    initial=0)
+        abs_salinity = Variable('abs_salinity', dtype=np.float32,
                                 initial=0)
-    abs_salinity = Variable('abs_salinity', dtype=np.float32,
-                            initial=0)
-    mld = Variable('mld', dtype=np.float32, initial=0)
-    alpha = Variable('alpha', dtype=np.float32, initial=particle_size)
-    density = Variable('density', dtype=np.float32, initial=1035)
-    v_s = Variable('v_s', dtype=np.float32, initial=0)
-    alpha = Variable('alpha', dtype=np.float32, initial=particle_size)
+        mld = Variable('mld', dtype=np.float32, initial=0)
+        alpha = Variable('alpha', dtype=np.float32, initial=particle_size)
+        density = Variable('density', dtype=np.float32, initial=1035)
+        v_s = Variable('v_s', dtype=np.float32, initial=0)
+        alpha = Variable('alpha', dtype=np.float32, initial=particle_size)
+        w = Variable('w', dtype=np.float32, initial=0)
+        k_z = Variable('k_z', dtype=np.float32, initial=0)
+
+
+elif RKx == 'RK1':
+    class PlasticParticle(JITParticle):
+        cons_temperature = Variable('cons_temperature', dtype=np.float32,
+                                    initial=0)
+        abs_salinity = Variable('abs_salinity', dtype=np.float32,
+                                initial=0)
+        mld = Variable('mld', dtype=np.float32, initial=0)
+        alpha = Variable('alpha', dtype=np.float32, initial=particle_size)
+        density = Variable('density', dtype=np.float32, initial=1035)
+        v_s = Variable('v_s', dtype=np.float32, initial=0)
+        alpha = Variable('alpha', dtype=np.float32, initial=particle_size)
+        w = Variable('w', dtype=np.float32, initial=0)
+        k_z = Variable('k_z', dtype=np.float32, initial=0)
 
 
 lon_cluster = [6.287]*n_points

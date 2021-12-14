@@ -29,6 +29,10 @@ def SampleField(particle, fielset, time):
                                                   particle.lat, particle.lon]
     particle.mld = fieldset.mld[time, particle.depth,
                                 particle.lat, particle.lon]
+    particle.w = fieldset.W[time, particle.depth,
+                                particle.lat, particle.lon]
+    particle.k_z = fieldset.K_z[time, particle.depth,
+                                particle.lat, particle.lon]
 
 
 def AdvectionRK4_1D(particle, fieldset, time):
