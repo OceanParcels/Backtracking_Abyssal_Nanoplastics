@@ -12,8 +12,11 @@ import sys
 # bio_ON = False
 
 RKx = sys.argv[1]  # 'RK4' or 'RK1'
-n_points = 100
-sim_time = 365 # days backwards
+
+print(RKx)
+
+n_points = 10000
+sim_time = 25 # days backwards
 particle_size = 1e-6  # meters
 particle_density = 1380  # kg/m3
 initial_depth = 1  # 5 # 60 # 5179
@@ -37,7 +40,7 @@ k_zfiles = []
 for i in range(8, 9):
     ufiles = ufiles + sorted(glob(data_path + f'psy4v3r1-daily_U_201{i}*.nc'))
     vfiles = vfiles + sorted(glob(data_path + f'psy4v3r1-daily_V_201{i}*.nc'))
-    wfiles = wfiles + sorted(glob(data_path + f'psy4v3r1-daily_W_201{i}*.nc'))
+    wfiles = wfiles + sorted(glob(data_path + f'pcat sy4v3r1-daily_W_201{i}*.nc'))
     tfiles = tfiles + sorted(glob(data_path + f'psy4v3r1-daily_T_201{i}*.nc'))
     sfiles = sfiles + sorted(glob(data_path + f'psy4v3r1-daily_S_201{i}*.nc'))
     twoDfiles = twoDfiles + sorted(glob(data_path +
