@@ -30,7 +30,7 @@ def SampleField(particle, fielset, time):
     particle.mld = fieldset.mld[time, particle.depth,
                                 particle.lat, particle.lon]
     particle.w = fieldset.W[time, particle.depth,
-                                particle.lat, particle.lon]
+                            particle.lat, particle.lon]
     particle.k_z = fieldset.K_z[time, particle.depth,
                                 particle.lat, particle.lon]
 
@@ -145,43 +145,41 @@ def SinkingVelocity_RK4(particle, fieldset, time):
                                    particle.lat, particle.lon]
 
     if particle.depth < seafloor and particle.depth > 0:
-        T1 = fieldset.cons_temperature[time, particle.depth,
-                                       particle.lat, particle.lon]
-        S1 = fieldset.abs_salinity[time, particle.depth,
-                                   particle.lat, particle.lon]
-        depth_1 = particle.depth
-        # --
-        rho_f = polyTEOS10_bsq(depth_1, S1, T1)
+        T = fieldset.cons_temperature[time, particle.depth,
+                                      particle.lat, particle.lon]
+        S = fieldset.abs_salinity[time, particle.depth,
+                                  particle.lat, particle.lon]
+        rho_f = polyTEOS10_bsq(particle.depth, S, T)
         beta = 3*rho_f/(2*rho_p + rho_f)
         tau_p = alpha*alpha/(3*beta*nu)
         v_s_1 = (1 - beta)*g*tau_p
-        # --
-        depth_2 = depth_1 + v_s_1*dt*0.5
-        T2 = fieldset.cons_temperature[time + .5*dt, depth_1,
+        depth_1 = particle.depth + v_s_1*dt*0.5
+        T1 = fieldset.cons_temperature[time + .5*dt, depth_1,
                                        particle.lat, particle.lon]
-        S2 = fieldset.abs_salinity[time + .5*dt, depth_1,
+        S1 = fieldset.abs_salinity[time + .5*dt, depth_1,
                                    particle.lat, particle.lon]
-        rho_f = polyTEOS10_bsq(depth_1, S2, T2)
+        # --
+        rho_f = polyTEOS10_bsq(depth_1, S1, T1)
         beta = 3*rho_f/(2*rho_p + rho_f)
         tau_p = alpha*alpha/(3*beta*nu)  # alpha*alpha
         v_s_2 = (1 - beta)*g*tau_p
-        # --
-        depth_3 = depth_2 + v_s_2*dt*0.5
-        T3 = fieldset.cons_temperature[time + .5*dt, depth_2,
+        depth_2 = particle.depth + v_s_2*dt*0.5
+        T2 = fieldset.cons_temperature[time + .5*dt, depth_2,
                                        particle.lat, particle.lon]
-        S3 = fieldset.abs_salinity[time + .5*dt, depth_2,
+        S2 = fieldset.abs_salinity[time + .5*dt, depth_2,
                                    particle.lat, particle.lon]
-        rho_f = polyTEOS10_bsq(depth_3, S3, T3)
+        # --
+        rho_f = polyTEOS10_bsq(depth_2, S2, T2)
         beta = 3*rho_f/(2*rho_p + rho_f)
         tau_p = alpha*alpha/(3*beta*nu)  # alpha*alpha
         v_s_3 = (1 - beta)*g*tau_p
-        # --
-        depth_4 = depth_3 + v_s_3*dt
-        T4 = fieldset.cons_temperature[time + dt, depth_3,
+        depth_3 = particle.depth + v_s_3*dt
+        T3 = fieldset.cons_temperature[time + dt, depth_3,
                                        particle.lat, particle.lon]
-        S4 = fieldset.abs_salinity[time + dt, depth_3,
+        S3 = fieldset.abs_salinity[time + dt, depth_3,
                                    particle.lat, particle.lon]
-        rho_f = polyTEOS10_bsq(depth_4, S4, T4)
+        # --
+        rho_f = polyTEOS10_bsq(depth_3, S3, T3)
         beta = 3*rho_f/(2*rho_p + rho_f)
         tau_p = alpha*alpha/(3*beta*nu)  # alpha*alpha
         v_s_4 = (1 - beta)*g*tau_p

@@ -1,7 +1,7 @@
 from glob import glob
 import numpy as np
 from parcels import FieldSet, ParticleSet, ScipyParticle, JITParticle
-from parcels import ErrorCode, AdvectionRK4_3D, Variable, Field
+from parcels import ErrorCode, Variable, Field
 from parcels.application_kernels.TEOSseawaterdensity import PolyTEOS10_bsq
 from datetime import timedelta
 from datetime import datetime
@@ -12,12 +12,12 @@ import sys
 # bio_ON = False
 
 RKx = sys.argv[1]  # 'RK4' or 'RK1'
-
 print(RKx)
 
-n_points = 10000
+n_points = 1000
 sim_time = 25  # days backwards
-particle_size = 1e-6  # meters
+# particle_size = 1e-6  # meters
+particle_size = np.linspace(1e-6, 1e-4, n_points)
 particle_density = 1380  # kg/m3
 initial_depth = 1  # 5 # 60 # 5179
 start_time = datetime.strptime('2018-01-01 12:00:00', '%Y-%m-%d %H:%M:%S')
@@ -26,7 +26,7 @@ series = 2
 # Lorenz - MOi fields
 data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
 output_path = '/storage/shared/oceanparcels/output_data/' + \
-    f'data_Claudio/{RKx}_{initial_depth}m_t{sim_time}.nc'
+    f'data_Claudio/{RKx}_{initial_depth}m_t{sim_time}_rho{particle_density}.nc'
 
 print(f'SA_{initial_depth}m_s{series:02d}.nc')
 ufiles = []
@@ -147,9 +147,6 @@ fieldset.add_field(Field('bathymetry', bathy['Bathymetry'].values,
                          lon=bathy['nav_lon'].values,
                          lat=bathy['nav_lat'].values,
                          mesh='spherical'))
-
-
-particle_size = np.linspace(1e-5, 1e-3, n_points)
 
 
 if RKx == 'RK4':
