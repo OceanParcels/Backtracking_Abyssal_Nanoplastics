@@ -12,6 +12,8 @@ import sys
 # bio_ON = False
 
 RKx = sys.argv[1]  # 'RK4' or 'RK1'
+Advection_ = True
+
 print(RKx)
 
 n_points = 1000
@@ -26,7 +28,7 @@ series = 2
 # Lorenz - MOi fields
 data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
 output_path = '/storage/shared/oceanparcels/output_data/' + \
-    f'data_Claudio/{RKx}_{initial_depth}m_t{sim_time}_rho{particle_density}.nc'
+    f'data_Claudio/{RKx}_{initial_depth}m_t{sim_time}_rho{particle_density}_advec.nc'
 
 print(f'SA_{initial_depth}m_s{series:02d}.nc')
 ufiles = []
@@ -205,8 +207,14 @@ if RKx == 'RK4':
 elif RKx == 'RK1':
     v_s_kernel = pset.Kernel(kernels.SinkingVelocity)
 
-kernels = pset.Kernel(kernels.SampleField) + \
-    pset.Kernel(PolyTEOS10_bsq) + v_s_kernel
+    
+if Advection_:
+    kernels = pset.Kernel(kernels.AdvectionRK4_1D) + \
+            pset.Kernel(kernels.SampleField) + \
+            pset.Kernel(PolyTEOS10_bsq) + v_s_kernel
+else:
+    kernels = pset.Kernel(kernels.SampleField) + \
+        pset.Kernel(PolyTEOS10_bsq) + v_s_kernel
 
 print('Kernels loaded')
 
