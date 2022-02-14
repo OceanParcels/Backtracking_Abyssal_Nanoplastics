@@ -8,15 +8,15 @@ from datetime import datetime
 import xarray as xr
 
 bio_ON = False
-n_points = 10000
-sim_time = 600  # days backwards
+n_points = 100000
+sim_time = 1800  # days backwards
 particle_size = 1e-6  # meters
 particle_density = 1380  # kg/m3
 initial_depth = 5179  # 5 # 60 # 5179
 start_time = datetime.strptime('2019-12-30 12:00:00', '%Y-%m-%d %H:%M:%S')
 series = 2
 
-# Lorenz - MOi fields
+# Lorenz - MOi
 data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
 output_path = '/storage/shared/oceanparcels/output_data/' + \
     f'data_Claudio/SA_{initial_depth}m_s{series:02d}_t{sim_time}.nc'
@@ -29,7 +29,7 @@ tfiles = []
 sfiles = []
 twoDfiles = []
 
-for i in range(8, 10):
+for i in range(5, 10):
     ufiles = ufiles + sorted(glob(data_path + f'psy4v3r1-daily_U_201{i}*.nc'))
     vfiles = vfiles + sorted(glob(data_path + f'psy4v3r1-daily_V_201{i}*.nc'))
     wfiles = wfiles + sorted(glob(data_path + f'psy4v3r1-daily_W_201{i}*.nc'))
