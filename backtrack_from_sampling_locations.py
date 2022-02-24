@@ -7,22 +7,32 @@ from datetime import timedelta
 from datetime import datetime
 import xarray as xr
 import kernels
+import sys
 
+
+# Kernels
 bio_ON = False
-n_points = 10000
-sim_time = 4380  # days backwards
+diffusion = False # this kernel has not been added yet
+sinking_v = False
+
+# Particle Size and Density
 particle_size = 1e-6  # meters
 particle_density = 1380  # kg/m3
-initial_depth = 5179  # 5 # 60 # 5179
+
+# Number of particles and simulation time
+n_points = 100000
+sim_time = 12*365  # days backwards
+
+# Initial condition
+initial_depth = int(sys.argv[1])  # 5 # 60 # 5179
 start_time = datetime.strptime('2019-12-30 12:00:00', '%Y-%m-%d %H:%M:%S')
-series = 2
 
 # Lorenz - MOi
 data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
 output_path = '/storage/shared/oceanparcels/output_data/' + \
-    f'data_Claudio/backtrack_SA/SA_{initial_depth}m_s{series:02d}_t{sim_time}.nc'
+    f'data_Claudio/backtrack_SA/SA_{initial_depth}m_t{sim_time}_diff-{diffusion}.nc'
 
-print(f'SA_{initial_depth}m_s{series:02d}.nc')
+print(f'SA_{initial_depth}m_t{sim_time}_diff-{diffusion}')
 ufiles = []
 vfiles = []
 wfiles = []
@@ -226,7 +236,7 @@ def SinkingVelocity(particle, fieldset, time):
 sample_kernel = pset.Kernel(SampleField)
 pset.execute(sample_kernel, dt=0)
 
-
+# Loading kernels
 kernels = pset.Kernel(AdvectionRK4_3D) + sample_kernel + \
     pset.Kernel(PolyTEOS10_bsq) #+ pset.Kernel(SinkingVelocity)
 
