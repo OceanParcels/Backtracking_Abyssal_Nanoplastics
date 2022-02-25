@@ -6,22 +6,33 @@ from parcels.application_kernels.TEOSseawaterdensity import PolyTEOS10_bsq
 from datetime import timedelta
 from datetime import datetime
 import xarray as xr
+import kernels
+import sys
 
+
+# Kernels
 bio_ON = False
-n_points = 100000
-sim_time = 1800  # days backwards
+diffusion = False # this kernel has not been added yet
+sinking_v = False
+
+# Particle Size and Density
 particle_size = 1e-6  # meters
 particle_density = 1380  # kg/m3
-initial_depth = 5179  # 5 # 60 # 5179
+
+# Number of particles and simulation time
+n_points = 100000
+sim_time = 12*365  # days backwards
+
+# Initial condition
+initial_depth = int(sys.argv[1])  # 5 # 60 # 5179
 start_time = datetime.strptime('2019-12-30 12:00:00', '%Y-%m-%d %H:%M:%S')
-series = 2
 
 # Lorenz - MOi
 data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
 output_path = '/storage/shared/oceanparcels/output_data/' + \
-    f'data_Claudio/SA_{initial_depth}m_s{series:02d}_t{sim_time}.nc'
+    f'data_Claudio/backtrack_SA/SA_{initial_depth}m_t{sim_time}_diff-{diffusion}.nc'
 
-print(f'SA_{initial_depth}m_s{series:02d}.nc')
+print(f'SA_{initial_depth}m_t{sim_time}_diff-{diffusion}')
 ufiles = []
 vfiles = []
 wfiles = []
@@ -29,14 +40,14 @@ tfiles = []
 sfiles = []
 twoDfiles = []
 
-for i in range(5, 10):
-    ufiles = ufiles + sorted(glob(data_path + f'psy4v3r1-daily_U_201{i}*.nc'))
-    vfiles = vfiles + sorted(glob(data_path + f'psy4v3r1-daily_V_201{i}*.nc'))
-    wfiles = wfiles + sorted(glob(data_path + f'psy4v3r1-daily_W_201{i}*.nc'))
-    tfiles = tfiles + sorted(glob(data_path + f'psy4v3r1-daily_T_201{i}*.nc'))
-    sfiles = sfiles + sorted(glob(data_path + f'psy4v3r1-daily_S_201{i}*.nc'))
+for i in range(7, 20):
+    ufiles = ufiles + sorted(glob(data_path + f'psy4v3r1-daily_U_20{i:02d}*.nc'))
+    vfiles = vfiles + sorted(glob(data_path + f'psy4v3r1-daily_V_20{i:02d}*.nc'))
+    wfiles = wfiles + sorted(glob(data_path + f'psy4v3r1-daily_W_20{i:02d}*.nc'))
+    tfiles = tfiles + sorted(glob(data_path + f'psy4v3r1-daily_T_20{i:02d}*.nc'))
+    sfiles = sfiles + sorted(glob(data_path + f'psy4v3r1-daily_S_20{i:02d}*.nc'))
     twoDfiles = twoDfiles + sorted(glob(data_path +
-                                        f'psy4v3r1-daily_2D_201{i}*.nc'))
+                                        f'psy4v3r1-daily_2D_20{i:02d}*.nc'))
 
 mesh_mask = '/storage/shared/oceanparcels/input_data/MOi/' + \
             'domain_ORCA0083-N006/coordinates.nc'
@@ -124,11 +135,11 @@ if bio_ON:
                              'depth': 'depthw',
                              'time': 'time_counter'}}
 
-indices = {'lat': range(750, 1300), 'lon': range(2900, 4000)}
+# indices = {'lat': range(750, 1300), 'lon': range(2900, 4000)}
 
 fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
-                              allow_time_extrapolation=False,
-                              indices=indices)
+                              allow_time_extrapolation=False)
+#                               indices=indices) # I comment this for long runs
 
 print('Fieldset loaded')
 if bio_ON:
@@ -180,6 +191,7 @@ pset = ParticleSet.from_list(fieldset=fieldset, pclass=PlasticParticle,
                              depth=depth_cluster,
                              time=date_cluster)
 
+
 print('Particle Set Created')
 
 def delete_particle(particle, fieldset, time):
@@ -196,7 +208,6 @@ def SampleField(particle, fielset, time):
                                 particle.lat, particle.lon]
 #     particle.ph = fieldset.ph[time, particle.depth,
 #                                                particle.lat, particle.lon]
-
 
 def SinkingVelocity(particle, fieldset, time):
     rho_p = fieldset.particle_density
@@ -219,10 +230,15 @@ def SinkingVelocity(particle, fieldset, time):
 
     particle.v_s = v_s
     particle.depth = particle.depth + v_s*dt
-# pset.execute(sample_kernel, dt=0)
 
-kernels = pset.Kernel(AdvectionRK4_3D) + pset.Kernel(SampleField) + \
-    pset.Kernel(PolyTEOS10_bsq) + pset.Kernel(SinkingVelocity)
+    
+#Sampling first timestep
+sample_kernel = pset.Kernel(SampleField)
+pset.execute(sample_kernel, dt=0)
+
+# Loading kernels
+kernels = pset.Kernel(AdvectionRK4_3D) + sample_kernel + \
+    pset.Kernel(PolyTEOS10_bsq) #+ pset.Kernel(SinkingVelocity)
 
 print('Kernels loaded')
 
