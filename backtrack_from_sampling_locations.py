@@ -20,7 +20,7 @@ particle_size = 1e-6  # meters
 particle_density = 1380  # kg/m3
 
 # Number of particles and simulation time
-n_points = 100000
+n_points = 1000
 sim_time = 12*365  # days backwards
 
 # Initial condition
@@ -30,7 +30,7 @@ start_time = datetime.strptime('2019-12-30 12:00:00', '%Y-%m-%d %H:%M:%S')
 # Lorenz - MOi
 data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
 output_path = '/storage/shared/oceanparcels/output_data/' + \
-    f'data_Claudio/backtrack_SA/SA_{initial_depth}m_t{sim_time}_diff-{diffusion}.nc'
+    f'data_Claudio/backtrack_SA/SA_{initial_depth}m_t{sim_time}_diff-{diffusion}_chopped.nc'
 
 print(f'SA_{initial_depth}m_t{sim_time}_diff-{diffusion}')
 ufiles = []
@@ -40,7 +40,7 @@ tfiles = []
 sfiles = []
 twoDfiles = []
 
-for i in range(7, 20):
+for i in range(19, 20):
     ufiles = ufiles + sorted(glob(data_path + f'psy4v3r1-daily_U_20{i:02d}*.nc'))
     vfiles = vfiles + sorted(glob(data_path + f'psy4v3r1-daily_V_20{i:02d}*.nc'))
     wfiles = wfiles + sorted(glob(data_path + f'psy4v3r1-daily_W_20{i:02d}*.nc'))
@@ -135,10 +135,20 @@ if bio_ON:
                              'depth': 'depthw',
                              'time': 'time_counter'}}
 
+if initial_depth == 5:
+    min_ind, max_ind = 0, 30 # Also these
+elif initial_depth == 60:
+    min_ind, max_ind = 36, 37 # Need to check these depths
+elif initial_depth == 5179:
+    min_ind, max_ind = 34, 49
+else:
+    raise ValueError('Depth indices have not been setup.') 
 # indices = {'lat': range(750, 1300), 'lon': range(2900, 4000)}
 
 fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
-                              allow_time_extrapolation=False)
+                              allow_time_extrapolation=False,
+                              indices={'deptht': range(min_ind, max_ind)},
+                             chunksize=False)
 #                               indices=indices) # I comment this for long runs
 
 print('Fieldset loaded')
@@ -206,8 +216,7 @@ def SampleField(particle, fielset, time):
                                                   particle.lat, particle.lon]
     particle.mld = fieldset.mld[time, particle.depth,
                                 particle.lat, particle.lon]
-#     particle.ph = fieldset.ph[time, particle.depth,
-#                                                particle.lat, particle.lon]
+
 
 def SinkingVelocity(particle, fieldset, time):
     rho_p = fieldset.particle_density
