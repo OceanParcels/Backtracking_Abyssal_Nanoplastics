@@ -145,7 +145,7 @@ else:
     raise ValueError('Depth indices have not been setup.') 
 # indices = {'lat': range(750, 1300), 'lon': range(2900, 4000)}  # before domain expansion
 indices = {'lat': range(500, 1800),
-           'lon': range(0, 4300),
+           'lon': range(0, 4322),
            'deptht': range(min_ind, max_ind)}  # after domain expansion 
 #  {'deptht': range(min_ind, max_ind)}
 fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
