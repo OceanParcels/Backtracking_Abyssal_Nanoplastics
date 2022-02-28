@@ -9,7 +9,6 @@ import xarray as xr
 import kernels
 import sys
 
-
 # Kernels
 bio_ON = False
 diffusion = False # this kernel has not been added yet
@@ -20,8 +19,8 @@ particle_size = 1e-6  # meters
 particle_density = 1380  # kg/m3
 
 # Number of particles and simulation time
-n_points = 1000
-sim_time = 12*365  # days backwards
+n_points = 50000
+sim_time = 10*365  # days backwards
 
 # Initial condition
 initial_depth = int(sys.argv[1])  # 5 # 60 # 5179
@@ -30,7 +29,8 @@ start_time = datetime.strptime('2019-12-30 12:00:00', '%Y-%m-%d %H:%M:%S')
 # Lorenz - MOi
 data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
 output_path = '/storage/shared/oceanparcels/output_data/' + \
-    f'data_Claudio/backtrack_SA/SA_{initial_depth}m_t{sim_time}_diff-{diffusion}_chopped.nc'
+    f'data_Claudio/backtrack_SA/SA_{initial_depth}m_t{sim_time}_diff-{diffusion}.nc'
+#       'periodic_boundaries_test.nc'
 
 print(f'SA_{initial_depth}m_t{sim_time}_diff-{diffusion}')
 ufiles = []
@@ -40,7 +40,7 @@ tfiles = []
 sfiles = []
 twoDfiles = []
 
-for i in range(19, 20):
+for i in range(7, 20):
     ufiles = ufiles + sorted(glob(data_path + f'psy4v3r1-daily_U_20{i:02d}*.nc'))
     vfiles = vfiles + sorted(glob(data_path + f'psy4v3r1-daily_V_20{i:02d}*.nc'))
     wfiles = wfiles + sorted(glob(data_path + f'psy4v3r1-daily_W_20{i:02d}*.nc'))
@@ -143,11 +143,14 @@ elif initial_depth == 5179:
     min_ind, max_ind = 34, 49
 else:
     raise ValueError('Depth indices have not been setup.') 
-# indices = {'lat': range(750, 1300), 'lon': range(2900, 4000)}
-
+# indices = {'lat': range(750, 1300), 'lon': range(2900, 4000)}  # before domain expansion
+indices = {'lat': range(500, 1800),
+           'lon': range(0, 4300),
+           'deptht': range(min_ind, max_ind)}  # after domain expansion 
+#  {'deptht': range(min_ind, max_ind)}
 fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
                               allow_time_extrapolation=False,
-                              indices={'deptht': range(min_ind, max_ind)},
+                              indices=indices,
                              chunksize=False)
 #                               indices=indices) # I comment this for long runs
 
@@ -218,6 +221,13 @@ def SampleField(particle, fielset, time):
                                 particle.lat, particle.lon]
 
 
+def periodicBC(particle, fieldset, time):
+    if particle.lon <= -180.:
+        particle.lon += 360.
+    elif particle.lon >= 180.:
+        particle.lon -= 360.
+
+
 def SinkingVelocity(particle, fieldset, time):
     rho_p = fieldset.particle_density
     rho_f = particle.density
@@ -246,8 +256,15 @@ sample_kernel = pset.Kernel(SampleField)
 pset.execute(sample_kernel, dt=0)
 
 # Loading kernels
-kernels = pset.Kernel(AdvectionRK4_3D) + sample_kernel + \
-    pset.Kernel(PolyTEOS10_bsq) #+ pset.Kernel(SinkingVelocity)
+kernels = pset.Kernel(AdvectionRK4_3D) + sample_kernel + pset.Kernel(PolyTEOS10_bsq)
+
+if sinking_v:
+    kernels += pset.Kernel(SinkingVelocity)
+    
+if diffusion:
+    print('pending')
+    
+kernels += pset.Kernel(periodicBC)
 
 print('Kernels loaded')
 
