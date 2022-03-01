@@ -136,9 +136,9 @@ if bio_ON:
                              'time': 'time_counter'}}
 
 if initial_depth == 5:
-    min_ind, max_ind = 0, 30 # Also these
+    min_ind, max_ind = 0, 33 # Also these
 elif initial_depth == 60:
-    min_ind, max_ind = 36, 37 # Need to check these depths
+    min_ind, max_ind = 0, 33 # Need to check these depths
 elif initial_depth == 5179:
     min_ind, max_ind = 34, 49
 else:
