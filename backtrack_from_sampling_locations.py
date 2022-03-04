@@ -1,3 +1,7 @@
+"""
+python3 backtrack_from_sampling_locations.py 5173 diff v_s frag
+"""
+
 from glob import glob
 import numpy as np
 from parcels import FieldSet, ParticleSet, JITParticle
@@ -6,20 +10,40 @@ from parcels.application_kernels.TEOSseawaterdensity import PolyTEOS10_bsq
 from datetime import timedelta
 from datetime import datetime
 import xarray as xr
-import kernels
+import local_kernels
 import sys
 
-# Kernels
+# Control Panel for Kernels
 bio_ON = False
-diffusion = False # this kernel has not been added yet
-sinking_v = False
+
+
+if str(sys.argv[2]) == "diff":
+    diffusion = True
+    print('diffusion')
+else:
+    diffusion = False
+
+if str(sys.argv[3]) == "v_s":
+    sinking_v = True
+    print('v_s')
+else:
+    sinking_v = False    
+    
+if str(sys.argv[4]) == "frag":
+    fragmentation = True
+    print('fragmentation')
+else:
+    fragmentation = False
+
+# ###
 
 # Particle Size and Density
-particle_size = 1e-6  # meters
-particle_density = 1380  # kg/m3
+particle_radius = 5e-8  # meters
+particle_density = 1380  # PET kg/m3
+initial_volume = 4/3*np.pi*particle_radius**3
 
 # Number of particles and simulation time
-n_points = 50000
+n_points = 10000
 sim_time = 10*365  # days backwards
 
 # Initial condition
@@ -29,10 +53,10 @@ start_time = datetime.strptime('2019-12-30 12:00:00', '%Y-%m-%d %H:%M:%S')
 # Lorenz - MOi
 data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
 output_path = '/storage/shared/oceanparcels/output_data/' + \
-    f'data_Claudio/backtrack_SA/SA_{initial_depth}m_t{sim_time}_diff-{diffusion}.nc'
+    f'data_Claudio/backtrack_SA/SA_{initial_depth}m_t{sim_time}_{sys.argv[2]}_{sys.argv[3]}_{sys.argv[4]}.nc'
 #       'periodic_boundaries_test.nc'
 
-print(f'SA_{initial_depth}m_t{sim_time}_diff-{diffusion}')
+print(f'SA_{initial_depth}m_t{sim_time}_diff-{diffusion}_')
 ufiles = []
 vfiles = []
 wfiles = []
@@ -155,13 +179,13 @@ fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
 #                               indices=indices) # I comment this for long runs
 
 print('Fieldset loaded')
+
+# Load biofiles
 if bio_ON:
     bio_fieldset = FieldSet.from_nemo(filenames_bio, variables_bio,
                                       dimensions_bio)
     fieldset.add_field(bio_fieldset.ph)
 
-# fieldset.add_constant('grow_rate', 1e-6)
-# fieldset.add_constant('g', -9.81)
 fieldset.add_constant('viscosity', 1e-6)
 fieldset.add_constant('particle_density', particle_density)
 bathy = xr.load_dataset(bathy_file)
@@ -171,6 +195,10 @@ fieldset.add_field(Field('bathymetry', bathy['Bathymetry'].values,
                          lat=bathy['nav_lat'].values,
                          mesh='spherical'))
 
+# Load diffusion files
+if diffusion:
+    fieldset.add_constant('molecular_diff', 1e-5)
+
 
 class PlasticParticle(JITParticle):
     cons_temperature = Variable('cons_temperature', dtype=np.float32,
@@ -178,10 +206,14 @@ class PlasticParticle(JITParticle):
     abs_salinity = Variable('abs_salinity', dtype=np.float32,
                             initial=0)
     mld = Variable('mld', dtype=np.float32, initial=0)
-    alpha = Variable('alpha', dtype=np.float32, initial=particle_size)
+    
+    radius = Variable('radius', dtype=np.float32, initial=particle_radius) # radius
+    volume = Variable('volume', dtype=np.float32, initial=initial_volume)
     density = Variable('density', dtype=np.float32, initial=1035)
+    
     v_s = Variable('v_s', dtype=np.float32, initial=0)
-
+ 
+    
 #     beta = Variable('beta', dtype=np.float32, initial=0)
 #     tau_p = v_s = Variable('tau_p', dtype=np.float32, initial=0)
 #     if bio_ON:
@@ -207,64 +239,28 @@ pset = ParticleSet.from_list(fieldset=fieldset, pclass=PlasticParticle,
 
 print('Particle Set Created')
 
-def delete_particle(particle, fieldset, time):
-    particle.delete()
-
-
-def SampleField(particle, fielset, time):
-    particle.cons_temperature = fieldset.cons_temperature[time, particle.depth,
-                                                          particle.lat,
-                                                          particle.lon]
-    particle.abs_salinity = fieldset.abs_salinity[time, particle.depth,
-                                                  particle.lat, particle.lon]
-    particle.mld = fieldset.mld[time, particle.depth,
-                                particle.lat, particle.lon]
-
-
-def periodicBC(particle, fieldset, time):
-    if particle.lon <= -180.:
-        particle.lon += 360.
-    elif particle.lon >= 180.:
-        particle.lon -= 360.
-
-
-def SinkingVelocity(particle, fieldset, time):
-    rho_p = fieldset.particle_density
-    rho_f = particle.density
-    nu = fieldset.viscosity
-    alpha = particle.alpha
-    g = 9.81
-    dt = particle.dt
-    beta = 3*rho_f/(2*rho_p + rho_f)
-    tau_p = alpha*alpha/(3*beta*nu)
-    tolerance = 10
-
-    seafloor = fieldset.bathymetry[time, particle.depth,
-                                   particle.lat, particle.lon]
-
-    if (particle.depth - 10) < seafloor and (particle.depth + 10) > 0:
-        v_s = (1 - beta)*g*tau_p
-    else:
-        v_s = 0
-
-    particle.v_s = v_s
-    particle.depth = particle.depth + v_s*dt
-
-    
 #Sampling first timestep
-sample_kernel = pset.Kernel(SampleField)
+sample_kernel = pset.Kernel(local_kernels.SampleField)
 pset.execute(sample_kernel, dt=0)
 
 # Loading kernels
-kernels = pset.Kernel(AdvectionRK4_3D) + sample_kernel + pset.Kernel(PolyTEOS10_bsq)
+kernels = pset.Kernel(AdvectionRK4_3D) + sample_kernel + pset.Kernel(PolyTEOS10_bsq) 
+kernels += pset.Kernel(local_kernels.periodicBC)
 
 if sinking_v:
-    kernels += pset.Kernel(SinkingVelocity)
+    print('v_s')
+    kernels += pset.Kernel(local_kernels.SinkingVelocity)
     
 if diffusion:
-    print('pending')
-    
-kernels += pset.Kernel(periodicBC)
+    print('diffusion')
+    fieldset.add_constant('diffusion', 1e-10)
+    kernels += pset.Kernel(local_kernels.BrownianMotion3D)
+
+if fragmentation:
+    print('fragmentation')
+    fieldset.add_constant('fragmentation_mode', 1/2)
+    fieldset.add_constant('fragmentation_timescale', 100) #days
+    kernels += pset.Kernel(local_kernels.fragmentation)
 
 print('Kernels loaded')
 
@@ -276,6 +272,6 @@ pset.execute(kernels,
              output_file=output_file,
              runtime=timedelta(days=sim_time),
              dt=-timedelta(hours=1),
-             recovery={ErrorCode.ErrorOutOfBounds: delete_particle})
+             recovery={ErrorCode.ErrorOutOfBounds: local_kernels.delete_particle})
 
 output_file.close()

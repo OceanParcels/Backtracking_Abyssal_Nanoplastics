@@ -1,8 +1,11 @@
+from parcels import ParcelsRandom
+import math
+
 def SinkingVelocity(particle, fieldset, time):
     rho_p = fieldset.particle_density
     rho_f = particle.density
     nu = fieldset.viscosity
-    alpha = particle.alpha
+    alpha = particle.radius
     g = 9.81
     dt = particle.dt
     beta = 3*rho_f/(2*rho_p + rho_f)
@@ -19,7 +22,7 @@ def SinkingVelocity(particle, fieldset, time):
 
     particle.v_s = v_s
     particle.depth = particle.depth + v_s*dt
-
+    
 
 def SampleField(particle, fielset, time):
     particle.cons_temperature = fieldset.cons_temperature[time, particle.depth,
@@ -29,10 +32,10 @@ def SampleField(particle, fielset, time):
                                                   particle.lat, particle.lon]
     particle.mld = fieldset.mld[time, particle.depth,
                                 particle.lat, particle.lon]
-    particle.w = fieldset.W[time, particle.depth,
-                            particle.lat, particle.lon]
-    particle.k_z = fieldset.K_z[time, particle.depth,
-                                particle.lat, particle.lon]
+#     particle.w = fieldset.W[time, particle.depth,
+#                             particle.lat, particle.lon]
+#     particle.k_z = fieldset.K_z[time, particle.depth,
+#                                 particle.lat, particle.lon]
 
 
 def AdvectionRK4_1D(particle, fieldset, time):
@@ -58,11 +61,43 @@ def AdvectionRK4_1D(particle, fieldset, time):
 
     particle.depth += (w1 + 2 * w2 + 2 * w3 + w4) / 6. * particle.dt
 
+    
+def delete_particle(particle, fieldset, time):
+    particle.delete()
+    
 
-def GrowParticle(particle, fieldset, time):
-    particle.alpha = particle.alpha - fieldset.grow_rate*particle.dt
+def periodicBC(particle, fieldset, time):
+    if particle.lon <= -180.:
+        particle.lon += 360.
+    elif particle.lon >= 180.:
+        particle.lon -= 360.
 
 
+def BrownianMotion3D(particle, fieldset, time):
+    """Kernel for simple Brownian particle diffusion in zonal and meridional
+    direction. Assumes that fieldset has fields Kh_zonal and Kh_meridional
+    we don't want particles to jump on land and thereby beach"""
+    
+    dWx = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
+    dWy = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
+    dWz = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
+
+    b = math.sqrt(2 * fieldset.diffusion)
+
+    particle.lon += b * dWx
+    particle.lat += b * dWy
+    particle.depth += b * dWz
+    
+
+def fragmentation(particle, fieldset, time):
+    fragmentation_prob = math.exp(-particle.dt/(fieldset.fragmentation_timescale*86400))
+    
+    if ParcelsRandom.random(0., 1.) > fragmentation_prob:
+        particle.volume = particle.volume/fieldset.fragmentation_mode
+        particle.radius = (3*particle.volume/(4*math.pi))**(1./3.)
+ 
+
+        
 def SinkingVelocity_RK4(particle, fieldset, time):
     def polyTEOS10_bsq(Z, SA, CT):
         Z = - Z  # particle.depth  # note: use negative depths!
