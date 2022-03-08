@@ -17,3 +17,18 @@ def stuck_particles_mask(dataset):
     new_dataset = dataset.where(mask == True)
     
     return new_dataset
+
+
+def average_parcels_output(array, window=30, normalized=True):
+    nx, nt = array.shape
+
+    new_t_dim = nt//window
+    averaged = np.zeros((nx, new_t_dim, ))
+    time_array = np.array(range(1, new_t_dim))
+
+    for t in range(0, new_t_dim):
+        index_slice = slice((t)*window, (t+1)*window)
+        mean_aux = np.mean(array[:, index_slice], axis=1)
+        averaged[t] = mean_aux
+
+    return averaged, time_array*window
