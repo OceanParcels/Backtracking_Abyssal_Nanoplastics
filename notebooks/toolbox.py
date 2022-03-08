@@ -14,5 +14,6 @@ def stuck_particles_mask(dataset):
     
     mask = (diff_lon + diff_lat + diff_z)
     mask = ~(mask == 0)
+    new_dataset = dataset.where(mask == True)
     
-    return mask
+    return new_dataset
