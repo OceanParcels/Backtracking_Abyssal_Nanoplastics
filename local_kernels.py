@@ -32,6 +32,8 @@ def SampleField(particle, fielset, time):
                                                   particle.lat, particle.lon]
     particle.mld = fieldset.mld[time, particle.depth,
                                 particle.lat, particle.lon]
+    particle.Kz = fieldset.Kz[time, particle.depth,
+                                particle.lat, particle.lon]
 #     particle.w = fieldset.W[time, particle.depth,
 #                             particle.lat, particle.lon]
 #     particle.k_z = fieldset.K_z[time, particle.depth,
@@ -87,7 +89,20 @@ def BrownianMotion3D(particle, fieldset, time):
     particle.lon += b * dWx
     particle.lat += b * dWy
     particle.depth += b * dWz
+
+
+def VerticalRandomWalk(particle, fieldset, time):
+    """Kz is in m2/s no need for convertion"""
     
+    dWz = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
+    b = math.sqrt(2 * particle.Kz)
+    
+    seafloor = fieldset.bathymetry[time, particle.depth,
+                                   particle.lat, particle.lon]
+    
+    if (particle.depth - 10) < seafloor and (particle.depth + 10) > 0:
+        particle.depth += b * dWz
+
 
 def fragmentation(particle, fieldset, time):
     fragmentation_prob = math.exp(-particle.dt/(fieldset.fragmentation_timescale*86400))
@@ -95,9 +110,8 @@ def fragmentation(particle, fieldset, time):
     if ParcelsRandom.random(0., 1.) > fragmentation_prob:
         particle.volume = particle.volume/fieldset.fragmentation_mode
         particle.radius = (3*particle.volume/(4*math.pi))**(1./3.)
- 
-
-        
+     
+    
 def SinkingVelocity_RK4(particle, fieldset, time):
     def polyTEOS10_bsq(Z, SA, CT):
         Z = - Z  # particle.depth  # note: use negative depths!

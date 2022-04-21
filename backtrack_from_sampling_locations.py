@@ -1,5 +1,5 @@
 """
-python3 backtrack_from_sampling_locations.py 5173 diff v_s frag
+python3 backtrack_from_sampling_locations.py 5173 diff v_s frag frag_timescale
 """
 
 from glob import glob
@@ -15,7 +15,7 @@ import sys
 
 # Control Panel for Kernels
 bio_ON = False
-
+Test_run = False
 
 if str(sys.argv[2]) == "diff":
     diffusion = True
@@ -35,20 +35,34 @@ if str(sys.argv[4]) == "frag":
 else:
     fragmentation = False
 
-# ###
-
-# Particle Size and Density
-particle_radius = 5e-8  # meters
-particle_density = 1380  # PET kg/m3
-initial_volume = 4/3*np.pi*particle_radius**3
-
-# Number of particles and simulation time
-n_points = 10000
-sim_time = 10*365  # days backwards
-
+    
+frag_timescale = int(sys.argv[5])
 # Initial condition
 initial_depth = int(sys.argv[1])  # 5 # 60 # 5179
 start_time = datetime.strptime('2019-12-30 12:00:00', '%Y-%m-%d %H:%M:%S')
+    
+# ###############################################
+
+if Test_run:
+    # Number of particles and simulation time
+    n_points = 1000
+    sim_time = 10  # days backwards
+    file_range = range(19, 20)
+    output_path = '/storage/shared/oceanparcels/output_data/' + \
+    f'data_Claudio/tests/SA_{initial_depth}m_t{sim_time}_{sys.argv[2]}_{sys.argv[3]}_{sys.argv[4]}.nc'
+    
+else:
+    # Number of particles and simulation time
+    n_points = 10000
+    sim_time = 10*365  # days backwards
+    file_range = range(7, 20)
+    output_path = '/storage/shared/oceanparcels/output_data/' + \
+    f'data_Claudio/backtrack_SA/SA_{initial_depth}m_t{sim_time}_{sys.argv[2]}_{sys.argv[3]}_{sys.argv[4]}.nc'
+
+# Particle Size and Density
+particle_radius = 5e-5  # meters
+particle_density = 1380  # PET kg/m3
+initial_volume = 4/3*np.pi*particle_radius**3
 
 # Lorenz - MOi
 data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
@@ -63,8 +77,9 @@ wfiles = []
 tfiles = []
 sfiles = []
 twoDfiles = []
+KZfiles = []
 
-for i in range(7, 20):
+for i in file_range:
     ufiles = ufiles + sorted(glob(data_path + f'psy4v3r1-daily_U_20{i:02d}*.nc'))
     vfiles = vfiles + sorted(glob(data_path + f'psy4v3r1-daily_V_20{i:02d}*.nc'))
     wfiles = wfiles + sorted(glob(data_path + f'psy4v3r1-daily_W_20{i:02d}*.nc'))
@@ -72,6 +87,8 @@ for i in range(7, 20):
     sfiles = sfiles + sorted(glob(data_path + f'psy4v3r1-daily_S_20{i:02d}*.nc'))
     twoDfiles = twoDfiles + sorted(glob(data_path +
                                         f'psy4v3r1-daily_2D_20{i:02d}*.nc'))
+    KZfiles = KZfiles + sorted(glob(data_path +
+                                        f'psy4v3r1-daily_KZ_20{i:02d}*.nc'))
 
 mesh_mask = '/storage/shared/oceanparcels/input_data/MOi/' + \
             'domain_ORCA0083-N006/coordinates.nc'
@@ -105,6 +122,11 @@ filenames['mld'] = {'lon': mesh_mask,
                     'depth': twoDfiles[0],
                     'data': twoDfiles}
 
+filenames['Kz'] = {'lon': mesh_mask,
+                   'lat': mesh_mask,
+                   'depth': wfiles[0],
+                   'data': KZfiles}
+
 
 variables = {'U': 'vozocrtx',
              'V': 'vomecrty',
@@ -113,6 +135,7 @@ variables = {'U': 'vozocrtx',
 variables['cons_temperature'] = 'votemper'
 variables['abs_salinity'] = 'vosaline'
 variables['mld'] = 'somxlavt'
+variables['Kz'] = 'votkeavt'
 
 dimensions = {'U': {'lon': 'glamf',
                     'lat': 'gphif',
@@ -142,6 +165,12 @@ dimensions['mld'] = {'lon': 'glamf',
                             'depth': 'deptht',
                             'time': 'time_counter'}
 
+dimensions['Kz'] = {'lon': 'glamf',
+                            'lat': 'gphif',
+                            'depth': 'depthw',
+                            'time': 'time_counter'}
+
+
 if bio_ON:
     bio_data_path = '/storage/shared/oceanparcels/input_data/MOi/biomer4v2r1/'
     phfiles = sorted(glob(bio_data_path + 'biomer4v2r1-weekly_ph_2019*.nc'))
@@ -166,12 +195,14 @@ elif initial_depth == 60:
 elif initial_depth == 5179:
     min_ind, max_ind = 34, 49
 else:
-    raise ValueError('Depth indices have not been setup.') 
-# indices = {'lat': range(750, 1300), 'lon': range(2900, 4000)}  # before domain expansion
-indices = {'lat': range(500, 1800),
-           'lon': range(0, 4322),
-           'deptht': range(min_ind, max_ind)}  # after domain expansion 
+    raise ValueError('Depth indices have not been setup.')
+    
+indices = {'lat': range(750, 1300), 'lon': range(2900, 4000)}  # before domain expansion
+# indices = {'lat': range(500, 1800),
+#            'lon': range(0, 4322),
+#            'deptht': range(min_ind, max_ind)}  # after domain expansion 
 #  {'deptht': range(min_ind, max_ind)}
+
 fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
                               allow_time_extrapolation=False,
                               indices=indices,
@@ -206,6 +237,7 @@ class PlasticParticle(JITParticle):
     abs_salinity = Variable('abs_salinity', dtype=np.float32,
                             initial=0)
     mld = Variable('mld', dtype=np.float32, initial=0)
+    Kz = Variable('Kz', dtype=np.float32, initial=0)
     
     radius = Variable('radius', dtype=np.float32, initial=particle_radius) # radius
     volume = Variable('volume', dtype=np.float32, initial=initial_volume)
@@ -219,7 +251,7 @@ class PlasticParticle(JITParticle):
 #     if bio_ON:
 #         ph = Variable('ph', dtype=np.float32, initial=0)
 
-
+np.random.seed(0)
 lon_cluster = [6.287]*n_points
 lat_cluster = [-32.171]*n_points
 lon_cluster = np.array(lon_cluster)+(np.random.random(len(lon_cluster))-0.5)/24
@@ -254,12 +286,12 @@ if sinking_v:
 if diffusion:
     print('diffusion')
     fieldset.add_constant('diffusion', 1e-10)
-    kernels += pset.Kernel(local_kernels.BrownianMotion3D)
+    kernels += pset.Kernel(local_kernels.VerticalRandomWalk)
 
 if fragmentation:
     print('fragmentation')
     fieldset.add_constant('fragmentation_mode', 1/2)
-    fieldset.add_constant('fragmentation_timescale', 100) #days
+    fieldset.add_constant('fragmentation_timescale', frag_timescale) #days
     kernels += pset.Kernel(local_kernels.fragmentation)
 
 print('Kernels loaded')
