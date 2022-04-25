@@ -1,4 +1,6 @@
 import numpy as np
+import random
+import string
 
 def stuck_particles_mask(dataset):
     """
@@ -32,3 +34,13 @@ def average_parcels_output(array, window=30, normalized=True):
         averaged[t] = mean_aux
 
     return averaged, time_array*window
+
+
+
+CHARACTERS = (
+    string.ascii_uppercase
+    + string.digits
+)
+
+def generate_unique_key():
+    return ''.join(random.sample(CHARACTERS, 6))

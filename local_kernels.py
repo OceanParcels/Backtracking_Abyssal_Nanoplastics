@@ -105,8 +105,7 @@ def VerticalRandomWalk(particle, fieldset, time):
 
 
 def fragmentation(particle, fieldset, time):
-    fragmentation_prob = math.exp(-particle.dt/(fieldset.fragmentation_timescale*86400))
-    
+    fragmentation_prob = math.exp(-1/(fieldset.fragmentation_timescale*24))
     if ParcelsRandom.random(0., 1.) > fragmentation_prob:
         particle.volume = particle.volume/fieldset.fragmentation_mode
         particle.radius = (3*particle.volume/(4*math.pi))**(1./3.)

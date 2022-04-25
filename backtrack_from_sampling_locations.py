@@ -12,10 +12,19 @@ from datetime import datetime
 import xarray as xr
 import local_kernels
 import sys
+import toolbox # homemade module with useful functions
+import os
+import pandas as pd
+
+###############################################################################
+# Setting up all parameters for simulation     #
+###############################################################################
 
 # Control Panel for Kernels
 bio_ON = False
 Test_run = False
+
+# Reading arguments
 
 if str(sys.argv[2]) == "diff":
     diffusion = True
@@ -37,11 +46,19 @@ else:
 
     
 frag_timescale = int(sys.argv[5])
+frag_mode = 1/2
 # Initial condition
 initial_depth = int(sys.argv[1])  # 5 # 60 # 5179
+lon_sample = 6.287
+lat_sample = -32.171
 start_time = datetime.strptime('2019-12-30 12:00:00', '%Y-%m-%d %H:%M:%S')
-    
-# ###############################################
+
+ID = toolbox.generate_unique_key()
+submission_date = datetime.now()
+
+###############################################################################
+# #
+###############################################################################
 
 if Test_run:
     # Number of particles and simulation time
@@ -49,28 +66,56 @@ if Test_run:
     sim_time = 10  # days backwards
     file_range = range(19, 20)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-    f'data_Claudio/tests/SA_{initial_depth}m_t{sim_time}_{sys.argv[2]}_{sys.argv[3]}_{sys.argv[4]}.nc'
+    f'data_Claudio/tests/{ID}.nc'
     
 else:
     # Number of particles and simulation time
     n_points = 10000
-    sim_time = 10*365  # days backwards
+    sim_time = 1*365  # days backwards
     file_range = range(7, 20)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-    f'data_Claudio/backtrack_SA/SA_{initial_depth}m_t{sim_time}_{sys.argv[2]}_{sys.argv[3]}_{sys.argv[4]}.nc'
+    f'data_Claudio/frag_runs/{ID}.nc'
 
 # Particle Size and Density
 particle_radius = 5e-5  # meters
 particle_density = 1380  # PET kg/m3
 initial_volume = 4/3*np.pi*particle_radius**3
 
-# Lorenz - MOi
-data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
-output_path = '/storage/shared/oceanparcels/output_data/' + \
-    f'data_Claudio/backtrack_SA/SA_{initial_depth}m_t{sim_time}_{sys.argv[2]}_{sys.argv[3]}_{sys.argv[4]}.nc'
-#       'periodic_boundaries_test.nc'
+###############################################################################
+# Simulations Log #
+###############################################################################
+log_file = 'log_simulations.csv'
+# log_run = toolbox.log_params()
+log_run = {'ID': [ID],
+       'test_run': [Test_run],
+       'date': [submission_date],
+       'depth': [initial_depth],
+       'lon': [lon_sample],
+       'lat': [lat_sample],
+       'start_time': [start_time],
+       'sim_time': [sim_time],
+       'radius': [particle_radius],
+       'density': [particle_density],
+       'diffusion': [diffusion],
+       'sinking_vel': [sinking_v],
+       'fragmentation': [fragmentation],
+       'frag_timescale': [frag_timescale],
+       'frag_mode': [frag_mode],
+        'bio_fields': [bio_ON]}
+    
+log_run = pd.DataFrame(log_run)
 
-print(f'SA_{initial_depth}m_t{sim_time}_diff-{diffusion}_')
+if os.path.exists(log_file):
+    log = pd.read_csv(log_file, index_col=0)
+
+log = pd.concat([log, log_run], axis=0)
+log.to_csv(log_file)
+
+###############################################################################
+# Reading files #
+###############################################################################
+data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
+
 ufiles = []
 vfiles = []
 wfiles = []
@@ -187,27 +232,31 @@ if bio_ON:
                              'lat': 'gphif',
                              'depth': 'depthw',
                              'time': 'time_counter'}}
-
-if initial_depth == 5:
-    min_ind, max_ind = 0, 33 # Also these
-elif initial_depth == 60:
-    min_ind, max_ind = 0, 33 # Need to check these depths
-elif initial_depth == 5179:
-    min_ind, max_ind = 34, 49
-else:
-    raise ValueError('Depth indices have not been setup.')
     
-indices = {'lat': range(750, 1300), 'lon': range(2900, 4000)}  # before domain expansion
+###############################################################################
+# Fieldset #
+###############################################################################
+
+# if initial_depth == 5:
+#     min_ind, max_ind = 0, 33 # Also these
+# elif initial_depth == 60:
+#     min_ind, max_ind = 0, 33 # Need to check these depths
+# elif initial_depth == 5179:
+#     min_ind, max_ind = 34, 49
+# else:
+#     raise ValueError('Depth indices have not been setup.')
+
 # indices = {'lat': range(500, 1800),
 #            'lon': range(0, 4322),
 #            'deptht': range(min_ind, max_ind)}  # after domain expansion 
 #  {'deptht': range(min_ind, max_ind)}
+    
+indices = {'lat': range(750, 1300), 'lon': range(2900, 4000)}  # before domain expansion
 
 fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
                               allow_time_extrapolation=False,
                               indices=indices,
                              chunksize=False)
-#                               indices=indices) # I comment this for long runs
 
 print('Fieldset loaded')
 
@@ -227,10 +276,12 @@ fieldset.add_field(Field('bathymetry', bathy['Bathymetry'].values,
                          mesh='spherical'))
 
 # Load diffusion files
-if diffusion:
-    fieldset.add_constant('molecular_diff', 1e-5)
+# if diffusion:
+#     fieldset.add_constant('molecular_diff', 1e-5)
 
-
+###############################################################################
+# Particle Set #
+###############################################################################
 class PlasticParticle(JITParticle):
     cons_temperature = Variable('cons_temperature', dtype=np.float32,
                                 initial=0)
@@ -252,8 +303,8 @@ class PlasticParticle(JITParticle):
 #         ph = Variable('ph', dtype=np.float32, initial=0)
 
 np.random.seed(0)
-lon_cluster = [6.287]*n_points
-lat_cluster = [-32.171]*n_points
+lon_cluster = [lon_sample]*n_points
+lat_cluster = [lat_sample]*n_points
 lon_cluster = np.array(lon_cluster)+(np.random.random(len(lon_cluster))-0.5)/24
 lat_cluster = np.array(lat_cluster)+(np.random.random(len(lat_cluster))-0.5)/24
 
@@ -271,6 +322,9 @@ pset = ParticleSet.from_list(fieldset=fieldset, pclass=PlasticParticle,
 
 print('Particle Set Created')
 
+###############################################################################
+# Kernels #
+###############################################################################
 #Sampling first timestep
 sample_kernel = pset.Kernel(local_kernels.SampleField)
 pset.execute(sample_kernel, dt=0)
@@ -290,7 +344,7 @@ if diffusion:
 
 if fragmentation:
     print('fragmentation')
-    fieldset.add_constant('fragmentation_mode', 1/2)
+    fieldset.add_constant('fragmentation_mode', frag_mode)
     fieldset.add_constant('fragmentation_timescale', frag_timescale) #days
     kernels += pset.Kernel(local_kernels.fragmentation)
 
