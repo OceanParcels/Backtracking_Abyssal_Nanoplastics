@@ -71,7 +71,7 @@ if Test_run:
 else:
     # Number of particles and simulation time
     n_points = 10000
-    sim_time = 1*365  # days backwards
+    sim_time = 10  # days backwards
     file_range = range(7, 20)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
     f'data_Claudio/frag_runs/{ID}.nc'
@@ -295,12 +295,7 @@ class PlasticParticle(JITParticle):
     density = Variable('density', dtype=np.float32, initial=1035)
     
     v_s = Variable('v_s', dtype=np.float32, initial=0)
- 
     
-#     beta = Variable('beta', dtype=np.float32, initial=0)
-#     tau_p = v_s = Variable('tau_p', dtype=np.float32, initial=0)
-#     if bio_ON:
-#         ph = Variable('ph', dtype=np.float32, initial=0)
 
 np.random.seed(0)
 lon_cluster = [lon_sample]*n_points
