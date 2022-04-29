@@ -15,7 +15,7 @@ def SinkingVelocity(particle, fieldset, time):
     seafloor = fieldset.bathymetry[time, particle.depth,
                                    particle.lat, particle.lon]
 
-    if (particle.depth - 10) < seafloor and (particle.depth + 10) > 0:
+    if (particle.depth - 10) < seafloor and (particle.depth) > particle.mld:
         v_s = (1 - beta)*g*tau_p
     else:
         v_s = 0
@@ -68,6 +68,12 @@ def delete_particle(particle, fieldset, time):
     particle.delete()
     
 
+def reflectiveBC(particle, fieldset, time):
+    
+    if particle.depth < 0:
+        particle.depth = abs(particle.depth)
+        
+    
 def periodicBC(particle, fieldset, time):
     if particle.lon <= -180.:
         particle.lon += 360.
@@ -100,15 +106,17 @@ def VerticalRandomWalk(particle, fieldset, time):
     seafloor = fieldset.bathymetry[time, particle.depth,
                                    particle.lat, particle.lon]
     
-    if (particle.depth - 10) < seafloor and (particle.depth + 10) > 0:
+    if (particle.depth - 10) < seafloor and (particle.depth) > particle.mld:
         particle.depth += b * dWz
 
 
 def fragmentation(particle, fieldset, time):
-    fragmentation_prob = math.exp(-1/(fieldset.fragmentation_timescale*24))
-    if ParcelsRandom.random(0., 1.) > fragmentation_prob:
-        particle.volume = particle.volume/fieldset.fragmentation_mode
-        particle.radius = (3*particle.volume/(4*math.pi))**(1./3.)
+    if particle.radius < 5e-3:
+        fragmentation_prob = math.exp(-1/(fieldset.fragmentation_timescale*24))
+        
+        if ParcelsRandom.random(0., 1.) > fragmentation_prob:
+            particle.volume = particle.volume/fieldset.fragmentation_mode
+            particle.radius = (3*particle.volume/(4*math.pi))**(1./3.)
      
     
 def SinkingVelocity_RK4(particle, fieldset, time):

@@ -71,14 +71,14 @@ if Test_run:
 else:
     # Number of particles and simulation time
     n_points = 10000
-    sim_time = 10  # days backwards
+    sim_time = 10*365  # days backwards
     file_range = range(7, 20)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
     f'data_Claudio/frag_runs/{ID}.nc'
 
 # Particle Size and Density
-particle_radius = 5e-5  # meters
-particle_density = 1380  # PET kg/m3
+particle_radius = 5e-8  # meters
+particle_density = 1100  # PET kg/m3
 initial_volume = 4/3*np.pi*particle_radius**3
 
 ###############################################################################
@@ -292,8 +292,7 @@ class PlasticParticle(JITParticle):
     
     radius = Variable('radius', dtype=np.float32, initial=particle_radius) # radius
     volume = Variable('volume', dtype=np.float32, initial=initial_volume)
-    density = Variable('density', dtype=np.float32, initial=1035)
-    
+    density = Variable('density', dtype=np.float32, initial=0)
     v_s = Variable('v_s', dtype=np.float32, initial=0)
     
 
@@ -323,10 +322,12 @@ print('Particle Set Created')
 #Sampling first timestep
 sample_kernel = pset.Kernel(local_kernels.SampleField)
 pset.execute(sample_kernel, dt=0)
+pset.execute(pset.Kernel(PolyTEOS10_bsq))
 
 # Loading kernels
 kernels = pset.Kernel(AdvectionRK4_3D) + sample_kernel + pset.Kernel(PolyTEOS10_bsq) 
-kernels += pset.Kernel(local_kernels.periodicBC)
+kernels += pset.Kernel(local_kernels.periodicBC) 
+kernels += pset.Kernel(local_kernels.reflectiveBC)
 
 if sinking_v:
     print('v_s')
