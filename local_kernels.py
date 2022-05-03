@@ -22,7 +22,7 @@ def SinkingVelocity(particle, fieldset, time):
 
     particle.v_s = v_s
     particle.depth = particle.depth + v_s*dt
-    
+
 
 def SampleField(particle, fielset, time):
     particle.cons_temperature = fieldset.cons_temperature[time, particle.depth,
@@ -62,8 +62,8 @@ def AdvectionRK4_1D(particle, fieldset, time):
                       particle.lat, particle.lon]
 
     particle.depth += (w1 + 2 * w2 + 2 * w3 + w4) / 6. * particle.dt
-
     
+
 def delete_particle(particle, fieldset, time):
     particle.delete()
     
@@ -106,7 +106,7 @@ def VerticalRandomWalk(particle, fieldset, time):
     seafloor = fieldset.bathymetry[time, particle.depth,
                                    particle.lat, particle.lon]
     
-    if (particle.depth - 10) < seafloor and (particle.depth) > particle.mld:
+    if (particle.depth - 50) < seafloor and (particle.depth) > particle.mld:
         particle.depth += b * dWz
 
 

@@ -36,7 +36,6 @@ def average_parcels_output(array, window=30, normalized=True):
     return averaged, time_array*window
 
 
-
 CHARACTERS = (
     string.ascii_uppercase
     + string.digits
