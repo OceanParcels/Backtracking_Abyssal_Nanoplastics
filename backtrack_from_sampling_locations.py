@@ -78,7 +78,7 @@ else:
 
 # Particle Size and Density
 particle_radius = 5e-8  # meters
-particle_density = 1100  # PET kg/m3
+particle_density = 1380  # PET kg/m3
 initial_volume = 4/3*np.pi*particle_radius**3
 
 ###############################################################################
