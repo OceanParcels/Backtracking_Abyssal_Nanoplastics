@@ -34,6 +34,9 @@ def SampleField(particle, fielset, time):
                                 particle.lat, particle.lon]
     particle.Kz = fieldset.Kz[time, particle.depth,
                                 particle.lat, particle.lon]
+    
+    seafloor = fieldset.bathymetry[time, particle.depth,
+                                   particle.lat, particle.lon]
 #     particle.w = fieldset.W[time, particle.depth,
 #                             particle.lat, particle.lon]
 #     particle.k_z = fieldset.K_z[time, particle.depth,
@@ -69,7 +72,6 @@ def delete_particle(particle, fieldset, time):
     
 
 def reflectiveBC(particle, fieldset, time):
-    
     if particle.depth < 0:
         particle.depth = abs(particle.depth)
         
