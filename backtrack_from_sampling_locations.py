@@ -22,7 +22,7 @@ import pandas as pd
 
 # Control Panel for Kernels
 bio_ON = False
-Test_run = False
+Test_run = True
 
 # Reading arguments
 
