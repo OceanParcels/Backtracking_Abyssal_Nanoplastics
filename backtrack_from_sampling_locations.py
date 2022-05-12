@@ -102,7 +102,7 @@ log_run = {'ID': [ID],
        'frag_timescale': [frag_timescale],
        'frag_mode': [frag_mode],
         'bio_fields': [bio_ON]}
-    
+
 log_run = pd.DataFrame(log_run)
 
 if os.path.exists(log_file):
