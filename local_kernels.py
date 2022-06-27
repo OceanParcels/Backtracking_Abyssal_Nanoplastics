@@ -1,6 +1,7 @@
 from parcels import ParcelsRandom
 import math
 
+
 def SinkingVelocity(particle, fieldset, time):
     rho_p = fieldset.particle_density
     rho_f = particle.density
@@ -33,8 +34,8 @@ def SampleField(particle, fielset, time):
     particle.mld = fieldset.mld[time, particle.depth,
                                 particle.lat, particle.lon]
     particle.Kz = fieldset.Kz[time, particle.depth,
-                                particle.lat, particle.lon]
-    
+                              particle.lat, particle.lon]
+
     seafloor = fieldset.bathymetry[time, particle.depth,
                                    particle.lat, particle.lon]
 #     particle.w = fieldset.W[time, particle.depth,
@@ -65,17 +66,17 @@ def AdvectionRK4_1D(particle, fieldset, time):
                       particle.lat, particle.lon]
 
     particle.depth += (w1 + 2 * w2 + 2 * w3 + w4) / 6. * particle.dt
-    
+
 
 def delete_particle(particle, fieldset, time):
     particle.delete()
-    
+
 
 def reflectiveBC(particle, fieldset, time):
     if particle.depth < 0:
-        particle.depth = abs(particle.depth)
-        
-    
+        particle.depth = math.fabs(particle.depth)
+
+
 def periodicBC(particle, fieldset, time):
     if particle.lon <= -180.:
         particle.lon += 360.
@@ -87,7 +88,7 @@ def BrownianMotion3D(particle, fieldset, time):
     """Kernel for simple Brownian particle diffusion in zonal and meridional
     direction. Assumes that fieldset has fields Kh_zonal and Kh_meridional
     we don't want particles to jump on land and thereby beach"""
-    
+
     dWx = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
     dWy = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
     dWz = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
@@ -101,13 +102,13 @@ def BrownianMotion3D(particle, fieldset, time):
 
 def VerticalRandomWalk(particle, fieldset, time):
     """Kz is in m2/s no need for convertion"""
-    
+
     dWz = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
     b = math.sqrt(2 * particle.Kz)
-    
+
     seafloor = fieldset.bathymetry[time, particle.depth,
                                    particle.lat, particle.lon]
-    
+
     if (particle.depth - 50) < seafloor and (particle.depth) > particle.mld:
         particle.depth += b * dWz
 
@@ -115,12 +116,12 @@ def VerticalRandomWalk(particle, fieldset, time):
 def fragmentation(particle, fieldset, time):
     if particle.radius < 5e-3:
         fragmentation_prob = math.exp(-1/(fieldset.fragmentation_timescale*24))
-        
+
         if ParcelsRandom.random(0., 1.) > fragmentation_prob:
             particle.volume = particle.volume/fieldset.fragmentation_mode
             particle.radius = (3*particle.volume/(4*math.pi))**(1./3.)
-     
-    
+
+
 def SinkingVelocity_RK4(particle, fieldset, time):
     def polyTEOS10_bsq(Z, SA, CT):
         Z = - Z  # particle.depth  # note: use negative depths!
