@@ -12,7 +12,7 @@ from datetime import datetime
 import xarray as xr
 import local_kernels
 import sys
-import toolbox # homemade module with useful functions
+import toolbox  # homemade module with useful functions
 import os
 import pandas as pd
 
@@ -36,15 +36,15 @@ if str(sys.argv[3]) == "v_s":
     sinking_v = True
     print('v_s')
 else:
-    sinking_v = False    
-    
+    sinking_v = False
+
 if str(sys.argv[4]) == "frag":
     fragmentation = True
     print('fragmentation')
 else:
     fragmentation = False
 
-    
+
 frag_timescale = int(sys.argv[5])
 frag_mode = 1/2
 # Initial condition
@@ -66,15 +66,15 @@ if Test_run:
     sim_time = 10  # days backwards
     file_range = range(19, 20)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-    f'data_Claudio/tests/{ID}.nc'
-    
+        f'data_Claudio/tests/{ID}.nc'
+
 else:
     # Number of particles and simulation time
     n_points = 10000
     sim_time = 10*365  # days backwards
     file_range = range(7, 20)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-    f'data_Claudio/frag_runs/{ID}.nc'
+        f'data_Claudio/frag_runs/{ID}.zarr'
 
 # Particle Size and Density
 particle_radius = 5e-8  # meters
@@ -87,21 +87,21 @@ initial_volume = 4/3*np.pi*particle_radius**3
 log_file = 'log_simulations.csv'
 # log_run = toolbox.log_params()
 log_run = {'ID': [ID],
-       'test_run': [Test_run],
-       'date': [submission_date],
-       'depth': [initial_depth],
-       'lon': [lon_sample],
-       'lat': [lat_sample],
-       'start_time': [start_time],
-       'sim_time': [sim_time],
-       'radius': [particle_radius],
-       'density': [particle_density],
-       'diffusion': [diffusion],
-       'sinking_vel': [sinking_v],
-       'fragmentation': [fragmentation],
-       'frag_timescale': [frag_timescale],
-       'frag_mode': [frag_mode],
-        'bio_fields': [bio_ON]}
+           'test_run': [Test_run],
+           'date': [submission_date],
+           'depth': [initial_depth],
+           'lon': [lon_sample],
+           'lat': [lat_sample],
+           'start_time': [start_time],
+           'sim_time': [sim_time],
+           'radius': [particle_radius],
+           'density': [particle_density],
+           'diffusion': [diffusion],
+           'sinking_vel': [sinking_v],
+           'fragmentation': [fragmentation],
+           'frag_timescale': [frag_timescale],
+           'frag_mode': [frag_mode],
+           'bio_fields': [bio_ON]}
 
 log_run = pd.DataFrame(log_run)
 
@@ -133,7 +133,7 @@ for i in file_range:
     twoDfiles = twoDfiles + sorted(glob(data_path +
                                         f'psy4v3r1-daily_2D_20{i:02d}*.nc'))
     KZfiles = KZfiles + sorted(glob(data_path +
-                                        f'psy4v3r1-daily_KZ_20{i:02d}*.nc'))
+                                    f'psy4v3r1-daily_KZ_20{i:02d}*.nc'))
 
 mesh_mask = '/storage/shared/oceanparcels/input_data/MOi/' + \
             'domain_ORCA0083-N006/coordinates.nc'
@@ -211,9 +211,9 @@ dimensions['mld'] = {'lon': 'glamf',
                             'time': 'time_counter'}
 
 dimensions['Kz'] = {'lon': 'glamf',
-                            'lat': 'gphif',
-                            'depth': 'depthw',
-                            'time': 'time_counter'}
+                    'lat': 'gphif',
+                    'depth': 'depthw',
+                    'time': 'time_counter'}
 
 
 if bio_ON:
@@ -232,7 +232,7 @@ if bio_ON:
                              'lat': 'gphif',
                              'depth': 'depthw',
                              'time': 'time_counter'}}
-    
+
 ###############################################################################
 # Fieldset #
 ###############################################################################
@@ -248,15 +248,15 @@ if bio_ON:
 
 # indices = {'lat': range(500, 1800),
 #            'lon': range(0, 4322),
-#            'deptht': range(min_ind, max_ind)}  # after domain expansion 
+#            'deptht': range(min_ind, max_ind)}  # after domain expansion
 #  {'deptht': range(min_ind, max_ind)}
-    
+
 indices = {'lat': range(750, 1300), 'lon': range(2900, 4000)}  # before domain expansion
 
 fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
                               allow_time_extrapolation=False,
                               indices=indices,
-                             chunksize=False)
+                              chunksize=False)
 
 print('Fieldset loaded')
 
@@ -282,6 +282,8 @@ fieldset.add_field(Field('bathymetry', bathy['Bathymetry'].values,
 ###############################################################################
 # Particle Set #
 ###############################################################################
+
+
 class PlasticParticle(JITParticle):
     cons_temperature = Variable('cons_temperature', dtype=np.float32,
                                 initial=0)
@@ -289,12 +291,12 @@ class PlasticParticle(JITParticle):
                             initial=0)
     mld = Variable('mld', dtype=np.float32, initial=0)
     Kz = Variable('Kz', dtype=np.float32, initial=0)
-    
-    radius = Variable('radius', dtype=np.float32, initial=particle_radius) # radius
+
+    radius = Variable('radius', dtype=np.float32, initial=particle_radius)  # radius
     volume = Variable('volume', dtype=np.float32, initial=initial_volume)
     density = Variable('density', dtype=np.float32, initial=0)
     v_s = Variable('v_s', dtype=np.float32, initial=0)
-    
+
 
 np.random.seed(0)
 lon_cluster = [lon_sample]*n_points
@@ -319,20 +321,20 @@ print('Particle Set Created')
 ###############################################################################
 # Kernels #
 ###############################################################################
-#Sampling first timestep
+# Sampling first timestep
 sample_kernel = pset.Kernel(local_kernels.SampleField)
 pset.execute(sample_kernel, dt=0)
 pset.execute(pset.Kernel(PolyTEOS10_bsq))
 
 # Loading kernels
-kernels = pset.Kernel(AdvectionRK4_3D) + sample_kernel + pset.Kernel(PolyTEOS10_bsq) 
-kernels += pset.Kernel(local_kernels.periodicBC) 
+kernels = pset.Kernel(AdvectionRK4_3D) + sample_kernel + pset.Kernel(PolyTEOS10_bsq)
+kernels += pset.Kernel(local_kernels.periodicBC)
 kernels += pset.Kernel(local_kernels.reflectiveBC)
 
 if sinking_v:
     print('v_s')
     kernels += pset.Kernel(local_kernels.SinkingVelocity)
-    
+
 if diffusion:
     print('diffusion')
     fieldset.add_constant('diffusion', 1e-10)
@@ -341,7 +343,7 @@ if diffusion:
 if fragmentation:
     print('fragmentation')
     fieldset.add_constant('fragmentation_mode', frag_mode)
-    fieldset.add_constant('fragmentation_timescale', frag_timescale) #days
+    fieldset.add_constant('fragmentation_timescale', frag_timescale)  # days
     kernels += pset.Kernel(local_kernels.fragmentation)
 
 print('Kernels loaded')
