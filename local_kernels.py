@@ -16,9 +16,9 @@ def SinkingVelocity(particle, fieldset, time):
 
     seafloor = particle.seafloor
 
-    if (particle.depth - 10) < seafloor and (particle.depth) > particle.mld:
+    if particle.depth < seafloor: # and (particle.depth) > particle.mld:
         v_s = (1 - beta)*g*tau_p
-    else:
+    elif particle.depth < 0:
         v_s = 0
 
     particle.v_s = v_s
@@ -38,10 +38,9 @@ def SampleField(particle, fielset, time):
 
     particle.seafloor = fieldset.bathymetry[time, particle.depth,
                                    particle.lat, particle.lon]
-#     particle.w = fieldset.W[time, particle.depth,
-#                             particle.lat, particle.lon]
-#     particle.k_z = fieldset.K_z[time, particle.depth,
-#                                 particle.lat, particle.lon]
+    particle.w = fieldset.W[time, particle.depth,
+                            particle.lat, particle.lon]
+
 
 
 def AdvectionRK4_1D(particle, fieldset, time):
@@ -87,16 +86,22 @@ def periodicBC(particle, fieldset, time):
         particle.lon -= 360.
 
 
+def ML_freeze(particle, fieldset, time):
+    if particle.depth < particle.mld:
+        particle.delete()
+
+
 def BrownianMotion3D(particle, fieldset, time):
     """Kernel for simple Brownian particle diffusion in zonal and meridional
     direction. Assumes that fieldset has fields Kh_zonal and Kh_meridional
     we don't want particles to jump on land and thereby beach"""
 
+    K = 10
     dWx = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
     dWy = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
     dWz = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
 
-    b = math.sqrt(2 * fieldset.diffusion)
+    b = math.sqrt(2 * K)
 
     particle.lon += b * dWx
     particle.lat += b * dWy
@@ -111,12 +116,12 @@ def VerticalRandomWalk(particle, fieldset, time):
 
     seafloor = particle.seafloor
 
-    if (particle.depth - 50) < seafloor and (particle.depth) > particle.mld:
+    if (particle.depth - 10) < seafloor and (particle.depth) > particle.mld:
         particle.depth += b * dWz
 
 
 def fragmentation(particle, fieldset, time):
-    if particle.diameter < 5e-3:
+    if particle.diameter < 3e-4:
         fragmentation_prob = math.exp(-1/(fieldset.fragmentation_timescale*24))
 
         if ParcelsRandom.random(0., 1.) > fragmentation_prob:

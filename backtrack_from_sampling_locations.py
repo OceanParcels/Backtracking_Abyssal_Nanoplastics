@@ -1,5 +1,5 @@
 """
-python3 backtrack_from_sampling_locations.py 5173 diff v_s frag frag_timescale
+python3 backtrack_from_sampling_locations.py 5173 dif v_s frag frag_timescale
 """
 
 from glob import glob
@@ -26,7 +26,7 @@ Test_run = True
 
 # Reading arguments
 
-if str(sys.argv[2]) == "diff":
+if str(sys.argv[2]) == "dif":
     diffusion = True
     print('diffusion')
 else:
@@ -71,13 +71,13 @@ if Test_run:
 else:
     # Number of particles and simulation time
     n_points = 10000
-    sim_time = 10*365  # days backwards
+    sim_time = 5*365  # days backwards
     file_range = range(7, 20)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
         f'data_Claudio/frag_runs/{ID}.zarr'
 
 # Particle Size and Density
-particle_diameter = 5e-8  # meters
+particle_diameter = 1e-4  # meters
 particle_density = 1380  # PET kg/m3
 # initial_volume = 4/3*np.pi*particle_radius**3
 
@@ -297,7 +297,7 @@ class PlasticParticle(JITParticle):
     seafloor = Variable('seafloor', dtype=np.float32, initial=0)
     density = Variable('density', dtype=np.float32, initial=0)
     v_s = Variable('v_s', dtype=np.float32, initial=0)
-#     volume = Variable('volume', dtype=np.float32, initial=initial_volume)
+    w = Variable('w', dtype=np.float32, initial=0)
 
 np.random.seed(0)
 lon_cluster = [lon_sample]*n_points
@@ -331,14 +331,14 @@ pset.execute(pset.Kernel(PolyTEOS10_bsq))
 kernels = pset.Kernel(AdvectionRK4_3D) + sample_kernel + pset.Kernel(PolyTEOS10_bsq)
 kernels += pset.Kernel(local_kernels.periodicBC)
 kernels += pset.Kernel(local_kernels.reflectiveBC)
+kernels += pset.Kernel(local_kernels.ML_freeze)
 
 if sinking_v:
     print('v_s')
     kernels += pset.Kernel(local_kernels.SinkingVelocity)
 
 if diffusion:
-    print('diffusion')
-    fieldset.add_constant('diffusion', 1e-10)
+    print('Vertical diffusion')
     kernels += pset.Kernel(local_kernels.VerticalRandomWalk)
 
 if fragmentation:
