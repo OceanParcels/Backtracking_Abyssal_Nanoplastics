@@ -1,0 +1,7 @@
+,ID,test_run,date,depth,lon,lat,start_time,sim_time,diameter,density,diffusion,sinking_vel,fragmentation,frag_timescale,frag_mode,bio_fields
+0,NSCXZ4,True,2022-06-28 10:35:42.485040,5000,6.287,-32.171,2019-12-30 12:00:00,10,5e-08,1380,False,True,True,100,0.5,False
+0,W91LG6,True,2022-06-28 10:45:03.641050,5000,6.287,-32.171,2019-12-30 12:00:00,10,5e-08,1380,False,True,True,100,0.5,False
+0,Y5NZSV,True,2022-06-28 10:46:59.725091,5000,6.287,-32.171,2019-12-30 12:00:00,10,5e-08,1380,False,True,False,100,0.5,False
+0,5HDFET,True,2022-06-28 11:10:22.819588,5000,6.287,-32.171,2019-12-30 12:00:00,10,5e-08,1380,False,True,True,100,0.5,False
+0,T1E76A,True,2022-06-28 11:47:13.766923,5000,6.287,-32.171,2019-12-30 12:00:00,10,5e-08,1380,False,True,True,100,0.5,False
+0,PG4VBO,True,2022-06-28 11:52:29.269431,5000,6.287,-32.171,2019-12-30 12:00:00,10,5e-08,1380,False,True,True,100,0.5,False

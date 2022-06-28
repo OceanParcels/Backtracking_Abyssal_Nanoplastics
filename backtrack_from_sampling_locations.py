@@ -66,7 +66,7 @@ if Test_run:
     sim_time = 10  # days backwards
     file_range = range(19, 20)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/tests/{ID}.nc'
+        f'data_Claudio/tests/{ID}.zarr'
 
 else:
     # Number of particles and simulation time
@@ -77,14 +77,14 @@ else:
         f'data_Claudio/frag_runs/{ID}.zarr'
 
 # Particle Size and Density
-particle_radius = 5e-8  # meters
+particle_diameter = 5e-8  # meters
 particle_density = 1380  # PET kg/m3
-initial_volume = 4/3*np.pi*particle_radius**3
+# initial_volume = 4/3*np.pi*particle_radius**3
 
 ###############################################################################
 # Simulations Log #
 ###############################################################################
-log_file = 'log_simulations.csv'
+log_file = 'log_simulationsV2.csv'
 # log_run = toolbox.log_params()
 log_run = {'ID': [ID],
            'test_run': [Test_run],
@@ -94,7 +94,7 @@ log_run = {'ID': [ID],
            'lat': [lat_sample],
            'start_time': [start_time],
            'sim_time': [sim_time],
-           'radius': [particle_radius],
+           'diameter': [particle_diameter],
            'density': [particle_density],
            'diffusion': [diffusion],
            'sinking_vel': [sinking_v],
@@ -107,7 +107,9 @@ log_run = pd.DataFrame(log_run)
 
 if os.path.exists(log_file):
     log = pd.read_csv(log_file, index_col=0)
-
+else:
+    log = pd.DataFrame()
+    
 log = pd.concat([log, log_run], axis=0)
 log.to_csv(log_file)
 
@@ -291,18 +293,17 @@ class PlasticParticle(JITParticle):
                             initial=0)
     mld = Variable('mld', dtype=np.float32, initial=0)
     Kz = Variable('Kz', dtype=np.float32, initial=0)
-
-    radius = Variable('radius', dtype=np.float32, initial=particle_radius)  # radius
-    volume = Variable('volume', dtype=np.float32, initial=initial_volume)
+    diameter = Variable('diameter', dtype=np.float32, initial=particle_diameter)
+    seafloor = Variable('seafloor', dtype=np.float32, initial=0)
     density = Variable('density', dtype=np.float32, initial=0)
     v_s = Variable('v_s', dtype=np.float32, initial=0)
-
+#     volume = Variable('volume', dtype=np.float32, initial=initial_volume)
 
 np.random.seed(0)
 lon_cluster = [lon_sample]*n_points
 lat_cluster = [lat_sample]*n_points
-lon_cluster = np.array(lon_cluster)+(np.random.random(len(lon_cluster))-0.5)/24
-lat_cluster = np.array(lat_cluster)+(np.random.random(len(lat_cluster))-0.5)/24
+lon_cluster = np.array(lon_cluster) # +(np.random.random(len(lon_cluster))-0.5)/24
+lat_cluster = np.array(lat_cluster) # +(np.random.random(len(lat_cluster))-0.5)/24
 
 depth_cluster = np.ones(n_points)*initial_depth  # meters
 date_cluster = [start_time]*n_points

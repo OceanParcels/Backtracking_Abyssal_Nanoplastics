@@ -1,20 +1,20 @@
 from parcels import ParcelsRandom
 import math
+import numpy as np
 
 
 def SinkingVelocity(particle, fieldset, time):
     rho_p = fieldset.particle_density
     rho_f = particle.density
     nu = fieldset.viscosity
-    alpha = particle.radius
+    alpha = particle.diameter/2
     g = 9.81
     dt = particle.dt
     beta = 3*rho_f/(2*rho_p + rho_f)
     tau_p = alpha*alpha/(3*beta*nu)
     tolerance = 10
 
-    seafloor = fieldset.bathymetry[time, particle.depth,
-                                   particle.lat, particle.lon]
+    seafloor = particle.seafloor
 
     if (particle.depth - 10) < seafloor and (particle.depth) > particle.mld:
         v_s = (1 - beta)*g*tau_p
@@ -36,7 +36,7 @@ def SampleField(particle, fielset, time):
     particle.Kz = fieldset.Kz[time, particle.depth,
                               particle.lat, particle.lon]
 
-    seafloor = fieldset.bathymetry[time, particle.depth,
+    particle.seafloor = fieldset.bathymetry[time, particle.depth,
                                    particle.lat, particle.lon]
 #     particle.w = fieldset.W[time, particle.depth,
 #                             particle.lat, particle.lon]
@@ -75,6 +75,9 @@ def delete_particle(particle, fieldset, time):
 def reflectiveBC(particle, fieldset, time):
     if particle.depth < 0:
         particle.depth = math.fabs(particle.depth)
+        
+    if particle.depth > particle.seafloor:
+        particle.depth = particle.seafloor - 10
 
 
 def periodicBC(particle, fieldset, time):
@@ -106,20 +109,37 @@ def VerticalRandomWalk(particle, fieldset, time):
     dWz = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
     b = math.sqrt(2 * particle.Kz)
 
-    seafloor = fieldset.bathymetry[time, particle.depth,
-                                   particle.lat, particle.lon]
+    seafloor = particle.seafloor
 
     if (particle.depth - 50) < seafloor and (particle.depth) > particle.mld:
         particle.depth += b * dWz
 
 
 def fragmentation(particle, fieldset, time):
-    if particle.radius < 5e-3:
+    if particle.diameter < 5e-3:
         fragmentation_prob = math.exp(-1/(fieldset.fragmentation_timescale*24))
 
         if ParcelsRandom.random(0., 1.) > fragmentation_prob:
-            particle.volume = particle.volume/fieldset.fragmentation_mode
-            particle.radius = (3*particle.volume/(4*math.pi))**(1./3.)
+            
+            nummer = ParcelsRandom.random(0., 1.)
+            p_lim = [8/14.5, 12/14.5, 14/14.5]
+
+            if nummer < p_lim[0]:
+                frag_mode = 1/8
+
+            elif p_lim[0] < nummer and nummer < p_lim[1]:
+                frag_mode = 1/4
+
+            elif p_lim[1] < nummer and nummer < p_lim[2]:
+                frag_mode = 1/2
+
+            elif p_lim[2] < nummer:
+                frag_mode = 1
+            
+            particle.diameter = particle.diameter*frag_mode
+            
+#             particle.volume = particle.volume/fieldset.fragmentation_mode
+#             particle.radius = (3*particle.volume/(4*math.pi))**(1./3.)
 
 
 def SinkingVelocity_RK4(particle, fieldset, time):
@@ -200,8 +220,7 @@ def SinkingVelocity_RK4(particle, fieldset, time):
 
     nu = fieldset.viscosity
     alpha = particle.alpha
-    seafloor = fieldset.bathymetry[time, particle.depth,
-                                   particle.lat, particle.lon]
+    seafloor = particle.seafloor
 
     if particle.depth < seafloor and particle.depth > 0:
         T = fieldset.cons_temperature[time, particle.depth,
