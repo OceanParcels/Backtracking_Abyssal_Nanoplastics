@@ -22,7 +22,7 @@ import pandas as pd
 
 # Control Panel for Kernels
 bio_ON = False
-Test_run = True
+Test_run = False
 
 # Reading arguments
 
@@ -71,13 +71,13 @@ if Test_run:
 else:
     # Number of particles and simulation time
     n_points = 10000
-    sim_time = 5*365  # days backwards
+    sim_time = 10*365  # days backwards
     file_range = range(7, 20)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/frag_runs/{ID}.zarr'
+        f'data_Claudio/set_10/{ID}.zarr'
 
 # Particle Size and Density
-particle_diameter = 1e-4  # meters
+particle_diameter = 5e-08  # meters
 particle_density = 1380  # PET kg/m3
 # initial_volume = 4/3*np.pi*particle_radius**3
 

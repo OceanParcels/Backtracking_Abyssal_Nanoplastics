@@ -141,7 +141,8 @@ def fragmentation(particle, fieldset, time):
             elif p_lim[2] < nummer:
                 frag_mode = 1
             
-            particle.diameter = particle.diameter*frag_mode
+            particle.diameter = particle.diameter/frag_mode # division for reverse
+            # particle.diameter = particle.diameter/frag_mode # multiplication for forward
             
 #             particle.volume = particle.volume/fieldset.fragmentation_mode
 #             particle.radius = (3*particle.volume/(4*math.pi))**(1./3.)
