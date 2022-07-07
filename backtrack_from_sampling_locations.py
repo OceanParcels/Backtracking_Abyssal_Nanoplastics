@@ -22,7 +22,7 @@ import pandas as pd
 
 # Control Panel for Kernels
 bio_ON = False
-Test_run = False
+Test_run = True
 
 # Reading arguments
 
@@ -174,7 +174,6 @@ filenames['Kz'] = {'lon': mesh_mask,
                    'depth': wfiles[0],
                    'data': KZfiles}
 
-
 variables = {'U': 'vozocrtx',
              'V': 'vomecrty',
              'W': 'vovecrtz'}
@@ -238,7 +237,6 @@ if bio_ON:
 ###############################################################################
 # Fieldset #
 ###############################################################################
-
 # if initial_depth == 5:
 #     min_ind, max_ind = 0, 33 # Also these
 # elif initial_depth == 60:
@@ -277,10 +275,6 @@ fieldset.add_field(Field('bathymetry', bathy['Bathymetry'].values,
                          lat=bathy['nav_lat'].values,
                          mesh='spherical'))
 
-# Load diffusion files
-# if diffusion:
-#     fieldset.add_constant('molecular_diff', 1e-5)
-
 ###############################################################################
 # Particle Set #
 ###############################################################################
@@ -292,6 +286,7 @@ class PlasticParticle(JITParticle):
     abs_salinity = Variable('abs_salinity', dtype=np.float32,
                             initial=0)
     mld = Variable('mld', dtype=np.float32, initial=0)
+    surface = Variable('surface', dtype=np.int32, initial=0)
     Kz = Variable('Kz', dtype=np.float32, initial=0)
     diameter = Variable('diameter', dtype=np.float32, initial=particle_diameter)
     seafloor = Variable('seafloor', dtype=np.float32, initial=0)
