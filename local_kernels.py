@@ -76,6 +76,7 @@ def delete_particle(particle, fieldset, time):
 def reflectiveBC(particle, fieldset, time):
     if particle.depth < 0:
         particle.depth = math.fabs(particle.depth)
+        particle.surface = 1
         
     if particle.depth > particle.seafloor:
         particle.depth = particle.seafloor - 10
@@ -89,7 +90,7 @@ def periodicBC(particle, fieldset, time):
 
 
 def ML_freeze(particle, fieldset, time):
-    if particle.depth > particle.mld:
+    if particle.depth < 0:
         particle.surface = 1
 
 
@@ -124,27 +125,27 @@ def VerticalRandomWalk(particle, fieldset, time):
 
 
 def fragmentation(particle, fieldset, time):
-    if particle.diameter < 3e-4 and particle.surface == 0:
-        fragmentation_prob = 0.5 #math.exp(-1/(fieldset.fragmentation_timescale*24))
+#     if particle.diameter < 3e-4 and particle.surface == 0:
+    if particle.surface == 0:
+        fragmentation_prob = 0.1 #math.exp(-1/(fieldset.fragmentation_timescale*24))
 
-        if ParcelsRandom.random(0., 1.) > fragmentation_prob:
-            
-            nummer = ParcelsRandom.random(0., 1.)
-            p_lim = [8/14.5, 12/14.5, 14/14.5]
+#         if ParcelsRandom.random(0., 1.) > fragmentation_prob:
+#             nummer = ParcelsRandom.random(0., 1.)
+#             p_lim = [8/14.5, 12/14.5, 14/14.5]
 
-            if nummer < p_lim[0]:
-                frag_mode = 1/8
+#             if nummer < p_lim[0]:
+#                 frag_mode = 8
 
-            elif p_lim[0] < nummer and nummer < p_lim[1]:
-                frag_mode = 1/4
+#             elif (p_lim[0] < nummer) and (nummer < p_lim[1]):
+#                 frag_mode = 4
 
-            elif p_lim[1] < nummer and nummer < p_lim[2]:
-                frag_mode = 1/2
+#             elif (p_lim[1] < nummer) and (nummer < p_lim[2]):
+#                 frag_mode = 2
 
-            elif p_lim[2] < nummer:
-                frag_mode = 1
-            
-            particle.diameter = particle.diameter/frag_mode # division for reverse
+#             elif p_lim[2] < nummer:
+#                 frag_mode = 1
+
+        particle.diameter = particle.diameter*2 # division for reverse
             # particle.diameter = particle.diameter/frag_mode # multiplication for forward
             
 #             particle.volume = particle.volume/fieldset.fragmentation_mode

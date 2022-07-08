@@ -62,7 +62,7 @@ submission_date = datetime.now()
 
 if Test_run:
     # Number of particles and simulation time
-    n_points = 1000
+    n_points = 100
     sim_time = 10  # days backwards
     file_range = range(19, 20)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
@@ -323,10 +323,11 @@ pset.execute(sample_kernel, dt=0)
 pset.execute(pset.Kernel(PolyTEOS10_bsq))
 
 # Loading kernels
-kernels = pset.Kernel(AdvectionRK4_3D) + sample_kernel + pset.Kernel(PolyTEOS10_bsq)
-kernels += pset.Kernel(local_kernels.periodicBC)
-kernels += pset.Kernel(local_kernels.reflectiveBC)
-kernels += pset.Kernel(local_kernels.ML_freeze)
+kernels = pset.Kernel(AdvectionRK4_3D) + sample_kernel + pset.Kernel(PolyTEOS10_bsq) + pset.Kernel(local_kernels.periodicBC) + pset.Kernel(local_kernels.reflectiveBC)
+# kernels += pset.Kernel(local_kernels.ML_freeze)
+fieldset.add_constant('fragmentation_mode', frag_mode)
+fieldset.add_constant('fragmentation_timescale', frag_timescale)  # days
+kernels += pset.Kernel(local_kernels.fragmentation)
 
 if sinking_v:
     print('v_s')
@@ -336,11 +337,11 @@ if diffusion:
     print('Vertical diffusion')
     kernels += pset.Kernel(local_kernels.VerticalRandomWalk)
 
-if fragmentation:
-    print('fragmentation')
-    fieldset.add_constant('fragmentation_mode', frag_mode)
-    fieldset.add_constant('fragmentation_timescale', frag_timescale)  # days
-    kernels += pset.Kernel(local_kernels.fragmentation)
+# if fragmentation:
+#     print('fragmentation')
+#     fieldset.add_constant('fragmentation_mode', frag_mode)
+#     fieldset.add_constant('fragmentation_timescale', frag_timescale)  # days
+#     kernels += pset.Kernel(local_kernels.fragmentation)
 
 print('Kernels loaded')
 
