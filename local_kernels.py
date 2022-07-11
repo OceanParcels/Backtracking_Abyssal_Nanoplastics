@@ -34,6 +34,7 @@ def SampleField(particle, fielset, time):
                                                   particle.lat, particle.lon]
     particle.mld = fieldset.mld[time, particle.depth,
                                 particle.lat, particle.lon]
+    particle.true_z = particle.depth
     particle.Kz = fieldset.Kz[time, particle.depth,
                               particle.lat, particle.lon]
 
@@ -41,7 +42,6 @@ def SampleField(particle, fielset, time):
                                    particle.lat, particle.lon]
     particle.w = fieldset.W[time, particle.depth,
                             particle.lat, particle.lon]
-
 
 
 def AdvectionRK4_1D(particle, fieldset, time):
@@ -74,11 +74,10 @@ def delete_particle(particle, fieldset, time):
 
 
 def reflectiveBC(particle, fieldset, time):
-    if particle.depth < 0:
+    if particle.true_z < 0:
         particle.depth = math.fabs(particle.depth)
-        particle.surface = 1
         
-    if particle.depth > particle.seafloor:
+    if particle.true_z > particle.seafloor:
         particle.depth = particle.seafloor - 10
 
 
@@ -90,7 +89,7 @@ def periodicBC(particle, fieldset, time):
 
 
 def ML_freeze(particle, fieldset, time):
-    if particle.depth < 0:
+    if particle.true_z < particle.mld:
         particle.surface = 1
 
 
@@ -125,32 +124,28 @@ def VerticalRandomWalk(particle, fieldset, time):
 
 
 def fragmentation(particle, fieldset, time):
-#     if particle.diameter < 3e-4 and particle.surface == 0:
-    if particle.surface == 0:
-        fragmentation_prob = 0.1 #math.exp(-1/(fieldset.fragmentation_timescale*24))
+    if particle.diameter < 3e-4 and particle.surface == 0:
+        fragmentation_prob = 0.1 # math.exp(-1/(fieldset.fragmentation_timescale*24))
 
-#         if ParcelsRandom.random(0., 1.) > fragmentation_prob:
-#             nummer = ParcelsRandom.random(0., 1.)
-#             p_lim = [8/14.5, 12/14.5, 14/14.5]
+        if ParcelsRandom.random(0., 1.) > fragmentation_prob:
+            nummer = ParcelsRandom.random(0., 1.)
+            p_lim = [8/14.5, 12/14.5, 14/14.5]
 
-#             if nummer < p_lim[0]:
-#                 frag_mode = 8
+            if nummer < p_lim[0]:
+                frag_mode = 8
 
-#             elif (p_lim[0] < nummer) and (nummer < p_lim[1]):
-#                 frag_mode = 4
+            elif (p_lim[0] < nummer) and (nummer < p_lim[1]):
+                frag_mode = 4
 
-#             elif (p_lim[1] < nummer) and (nummer < p_lim[2]):
-#                 frag_mode = 2
+            elif (p_lim[1] < nummer) and (nummer < p_lim[2]):
+                frag_mode = 2
 
-#             elif p_lim[2] < nummer:
-#                 frag_mode = 1
+            elif p_lim[2] < nummer:
+                frag_mode = 1
 
-        particle.diameter = particle.diameter*2 # division for reverse
+        particle.diameter = particle.diameter*frag_mode # division for reverse
             # particle.diameter = particle.diameter/frag_mode # multiplication for forward
             
-#             particle.volume = particle.volume/fieldset.fragmentation_mode
-#             particle.radius = (3*particle.volume/(4*math.pi))**(1./3.)
-
 
 def SinkingVelocity_RK4(particle, fieldset, time):
     def polyTEOS10_bsq(Z, SA, CT):

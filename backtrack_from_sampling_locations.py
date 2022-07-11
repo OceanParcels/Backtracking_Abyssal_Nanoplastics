@@ -66,7 +66,7 @@ if Test_run:
     sim_time = 10  # days backwards
     file_range = range(19, 20)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/tests/{ID}.zarr'
+        f'data_Claudio/tests/testxx.zarr'
 
 else:
     # Number of particles and simulation time
@@ -287,6 +287,7 @@ class PlasticParticle(JITParticle):
                             initial=0)
     mld = Variable('mld', dtype=np.float32, initial=0)
     surface = Variable('surface', dtype=np.int32, initial=0)
+    true_z = Variable('true_z', dtype=np.float32, initial=0)
     Kz = Variable('Kz', dtype=np.float32, initial=0)
     diameter = Variable('diameter', dtype=np.float32, initial=particle_diameter)
     seafloor = Variable('seafloor', dtype=np.float32, initial=0)
@@ -318,13 +319,22 @@ print('Particle Set Created')
 # Kernels #
 ###############################################################################
 # Sampling first timestep
+
+def reflectiveBC(particle, fieldset, time):
+    if -particle.depth > 0:
+        particle.depth = math.fabs(particle.depth)
+        particle.surface = 1
+        
+    if particle.depth > particle.seafloor:
+        particle.depth = particle.seafloor - 10
+
 sample_kernel = pset.Kernel(local_kernels.SampleField)
 pset.execute(sample_kernel, dt=0)
 pset.execute(pset.Kernel(PolyTEOS10_bsq))
 
 # Loading kernels
-kernels = pset.Kernel(AdvectionRK4_3D) + sample_kernel + pset.Kernel(PolyTEOS10_bsq) + pset.Kernel(local_kernels.periodicBC) + pset.Kernel(local_kernels.reflectiveBC)
-# kernels += pset.Kernel(local_kernels.ML_freeze)
+kernels = pset.Kernel(AdvectionRK4_3D) + sample_kernel + pset.Kernel(PolyTEOS10_bsq) + pset.Kernel(local_kernels.periodicBC) + pset.Kernel(reflectiveBC)
+kernels += pset.Kernel(local_kernels.ML_freeze)
 fieldset.add_constant('fragmentation_mode', frag_mode)
 fieldset.add_constant('fragmentation_timescale', frag_timescale)  # days
 kernels += pset.Kernel(local_kernels.fragmentation)
