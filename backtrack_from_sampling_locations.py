@@ -66,7 +66,7 @@ if Test_run:
     sim_time = 10  # days backwards
     file_range = range(19, 20)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/tests/testxx.zarr'
+        f'data_Claudio/tests/{ID}.nc'
 
 else:
     # Number of particles and simulation time
@@ -320,24 +320,14 @@ print('Particle Set Created')
 ###############################################################################
 # Sampling first timestep
 
-def reflectiveBC(particle, fieldset, time):
-    if -particle.depth > 0:
-        particle.depth = math.fabs(particle.depth)
-        particle.surface = 1
-        
-    if particle.depth > particle.seafloor:
-        particle.depth = particle.seafloor - 10
-
 sample_kernel = pset.Kernel(local_kernels.SampleField)
 pset.execute(sample_kernel, dt=0)
 pset.execute(pset.Kernel(PolyTEOS10_bsq))
 
 # Loading kernels
-kernels = pset.Kernel(AdvectionRK4_3D) + sample_kernel + pset.Kernel(PolyTEOS10_bsq) + pset.Kernel(local_kernels.periodicBC) + pset.Kernel(reflectiveBC)
+kernels = pset.Kernel(local_kernels.AdvectionRK4_3D) + sample_kernel + pset.Kernel(PolyTEOS10_bsq) # + pset.Kernel(local_kernels.periodicBC) + pset.Kernel(local_kernels.reflectiveBC)
 kernels += pset.Kernel(local_kernels.ML_freeze)
-fieldset.add_constant('fragmentation_mode', frag_mode)
-fieldset.add_constant('fragmentation_timescale', frag_timescale)  # days
-kernels += pset.Kernel(local_kernels.fragmentation)
+
 
 if sinking_v:
     print('v_s')
@@ -347,11 +337,11 @@ if diffusion:
     print('Vertical diffusion')
     kernels += pset.Kernel(local_kernels.VerticalRandomWalk)
 
-# if fragmentation:
-#     print('fragmentation')
-#     fieldset.add_constant('fragmentation_mode', frag_mode)
-#     fieldset.add_constant('fragmentation_timescale', frag_timescale)  # days
-#     kernels += pset.Kernel(local_kernels.fragmentation)
+if fragmentation:
+    print('fragmentation')
+    fieldset.add_constant('fragmentation_mode', frag_mode)
+    fieldset.add_constant('fragmentation_timescale', frag_timescale)  # days
+    kernels += pset.Kernel(local_kernels.fragmentation)
 
 print('Kernels loaded')
 
