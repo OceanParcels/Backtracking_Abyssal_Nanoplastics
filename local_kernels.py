@@ -4,25 +4,22 @@ import numpy as np
 
 
 def SinkingVelocity(particle, fieldset, time):
-    if particle.surface == 0:
-        rho_p = fieldset.particle_density
+    if particle.depth > particle.mld:
+        rho_p = particle.particle_density
         rho_f = particle.density
-        nu = fieldset.viscosity
-        alpha = particle.diameter/2
-        g = 9.81
-        dt = particle.dt
-        beta = 3*rho_f/(2*rho_p + rho_f)
-        tau_p = alpha*alpha/(3*beta*nu)
-        tolerance = 10
-        seafloor = particle.seafloor
 
-        if particle.depth < seafloor: # and (particle.depth) > particle.mld:
-            v_s = (1 - beta)*g*tau_p
+        beta = 3*particle.density/(2*particle.particle_density + particle.density)
+        
+        tau_p = particle.diameter*particle.diameter/(12*beta*1e-6)
+   
+        if particle.depth < particle.seafloor: # and (particle.depth) > particle.mld:
+            v_s = (1 - beta)*9.81*tau_p
+            
         elif particle.depth < 0:
             v_s = 0
 
         particle.v_s = v_s
-        particle.depth = particle.depth + v_s*dt
+        particle.depth = particle.depth + v_s*particle.dt
 
 
 def SampleField(particle, fielset, time):
@@ -39,8 +36,6 @@ def SampleField(particle, fielset, time):
 
     particle.seafloor = fieldset.bathymetry[time, particle.depth,
                                    particle.lat, particle.lon]
-    particle.w = fieldset.W[time, particle.depth,
-                            particle.lat, particle.lon]
 
 
 def delete_particle(particle, fieldset, time):
@@ -48,10 +43,10 @@ def delete_particle(particle, fieldset, time):
 
 
 def reflectiveBC(particle, fieldset, time):
-    if particle.true_z < 0:
+    if particle.depth < 0:
         particle.depth = math.fabs(particle.depth)
         
-    if particle.true_z > particle.seafloor:
+    if particle.depth > particle.seafloor:
         particle.depth = particle.seafloor - 10
 
 
@@ -63,31 +58,15 @@ def periodicBC(particle, fieldset, time):
 
 
 def ML_freeze(particle, fieldset, time):
-    if particle.true_z < particle.mld:
+    if particle.depth < particle.mld:
         particle.surface = 1
-
-
-def BrownianMotion3D(particle, fieldset, time):
-    """Kernel for simple Brownian particle diffusion in zonal and meridional
-    direction. Assumes that fieldset has fields Kh_zonal and Kh_meridional
-    we don't want particles to jump on land and thereby beach"""
-    
-    if particle.surface == 0:
-        K = 10
-        dWx = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
-        dWy = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
-        dWz = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
-
-        b = math.sqrt(2 * K)
-
-        particle.lon += b * dWx
-        particle.lat += b * dWy
-        particle.depth += b * dWz
+    else:
+        particle.surface = 0
 
 
 def VerticalRandomWalk(particle, fieldset, time):
     """Kz is in m2/s no need for convertion"""
-    if particle.surface == 0:
+    if particle.depth < particle.mld:
         dWz = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
         b = math.sqrt(2 * particle.Kz)
 
@@ -98,36 +77,38 @@ def VerticalRandomWalk(particle, fieldset, time):
 
 
 def fragmentation(particle, fieldset, time):
-    if particle.surface == 0:
-        if particle.diameter < 1e-3:
-            fragmentation_prob = math.exp(-1/(fieldset.fragmentation_timescale*24))
+    
+    if particle.depth > particle.mld:
+        
+        # the dt is negative in the backward simulation, but normaly the exponet should be negative. 
+        fragmentation_prob = math.exp(particle.dt/(fieldset.fragmentation_timescale*86400.))
 
-            if ParcelsRandom.random(0., 1.) > fragmentation_prob:
-                nummer = ParcelsRandom.random(0., 1.)
-                p_lim = [8/14.5, 12/14.5, 14/14.5]
+        if ParcelsRandom.random(0., 1.) > fragmentation_prob:
+            nummer = ParcelsRandom.random(0., 1.)
+            plim0 = 8./14.5
+            plim1 = 12./14.5
+            plim2 = 14./14.5
 
-                if nummer < p_lim[0]:
-                    frag_mode = 8
+            if nummer <= plim0:
+                frag_mode = 8
 
-                elif (p_lim[0] < nummer) and (nummer < p_lim[1]):
-                    frag_mode = 4
+            elif (plim0 < nummer) and (nummer <= plim1):
+                frag_mode = 4
 
-                elif (p_lim[1] < nummer) and (nummer < p_lim[2]):
-                    frag_mode = 2
+            elif (plim1 < nummer) and (nummer <= plim2):
+                frag_mode = 2
 
-                elif p_lim[2] < nummer:
-                    frag_mode = 1
+            else:
+                frag_mode = 1
 
             particle.diameter = particle.diameter*frag_mode # division for reverse
-            
-        elif particle.diameter > 1e-3:
-            particle.diameter = 1e-3
+        
             
 def AdvectionRK4_3D(particle, fieldset, time):
     """Advection of particles using fourth-order Runge-Kutta integration including vertical velocity.
 
     Function needs to be converted to Kernel object before execution"""
-    if particle.surface == 0:
+    if particle.depth > particle.mld:
         (u1, v1, w1) = fieldset.UVW[particle]
         lon1 = particle.lon + u1*.5*particle.dt
         lat1 = particle.lat + v1*.5*particle.dt
@@ -144,3 +125,5 @@ def AdvectionRK4_3D(particle, fieldset, time):
         particle.lon += (u1 + 2*u2 + 2*u3 + u4) / 6. * particle.dt
         particle.lat += (v1 + 2*v2 + 2*v3 + v4) / 6. * particle.dt
         particle.depth += (w1 + 2*w2 + 2*w3 + w4) / 6. * particle.dt
+        
+        

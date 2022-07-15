@@ -77,8 +77,8 @@ else:
         f'data_Claudio/set_10/{ID}.zarr'
 
 # Particle Size and Density
-particle_diameter = 5e-08  # meters
-particle_density = 1380  # PET kg/m3
+particle_diameter = 5e-05  # meters
+initial_particle_density = 1380  # PET kg/m3
 # initial_volume = 4/3*np.pi*particle_radius**3
 
 ###############################################################################
@@ -95,7 +95,7 @@ log_run = {'ID': [ID],
            'start_time': [start_time],
            'sim_time': [sim_time],
            'diameter': [particle_diameter],
-           'density': [particle_density],
+           'density': [initial_particle_density],
            'diffusion': [diffusion],
            'sinking_vel': [sinking_v],
            'fragmentation': [fragmentation],
@@ -103,15 +103,16 @@ log_run = {'ID': [ID],
            'frag_mode': [frag_mode],
            'bio_fields': [bio_ON]}
 
-log_run = pd.DataFrame(log_run)
+if Test_run==False:
+    log_run = pd.DataFrame(log_run)
 
-if os.path.exists(log_file):
-    log = pd.read_csv(log_file, index_col=0)
-else:
-    log = pd.DataFrame()
-    
-log = pd.concat([log, log_run], axis=0)
-log.to_csv(log_file)
+    if os.path.exists(log_file):
+        log = pd.read_csv(log_file, index_col=0)
+    else:
+        log = pd.DataFrame()
+
+    log = pd.concat([log, log_run], axis=0)
+    log.to_csv(log_file)
 
 ###############################################################################
 # Reading files #
@@ -266,8 +267,6 @@ if bio_ON:
                                       dimensions_bio)
     fieldset.add_field(bio_fieldset.ph)
 
-fieldset.add_constant('viscosity', 1e-6)
-fieldset.add_constant('particle_density', particle_density)
 bathy = xr.load_dataset(bathy_file)
 
 fieldset.add_field(Field('bathymetry', bathy['Bathymetry'].values,
@@ -285,15 +284,19 @@ class PlasticParticle(JITParticle):
                                 initial=0)
     abs_salinity = Variable('abs_salinity', dtype=np.float32,
                             initial=0)
+    
     mld = Variable('mld', dtype=np.float32, initial=0)
     surface = Variable('surface', dtype=np.int32, initial=0)
     true_z = Variable('true_z', dtype=np.float32, initial=0)
     Kz = Variable('Kz', dtype=np.float32, initial=0)
-    diameter = Variable('diameter', dtype=np.float32, initial=particle_diameter)
     seafloor = Variable('seafloor', dtype=np.float32, initial=0)
     density = Variable('density', dtype=np.float32, initial=0)
     v_s = Variable('v_s', dtype=np.float32, initial=0)
     w = Variable('w', dtype=np.float32, initial=0)
+    
+    diameter = Variable('diameter', dtype=np.float64, initial=0)
+    particle_density = Variable('particle_density', dtype=np.float32,
+                            initial=initial_particle_density)
 
 np.random.seed(0)
 lon_cluster = [lon_sample]*n_points
@@ -304,13 +307,18 @@ lat_cluster = np.array(lat_cluster) # +(np.random.random(len(lat_cluster))-0.5)/
 depth_cluster = np.ones(n_points)*initial_depth  # meters
 date_cluster = [start_time]*n_points
 
+initial_diameters = np.zeros_like(lon_cluster) + particle_diameter + np.random.random(len(lon_cluster))*1e-7
+# intial_densities = 
+# intial_vs = np.zeros_like(lon_cluster)
+
 print('--------------')
 
 pset = ParticleSet.from_list(fieldset=fieldset, pclass=PlasticParticle,
                              lon=lon_cluster,
                              lat=lat_cluster,
                              depth=depth_cluster,
-                             time=date_cluster)
+                             time=date_cluster,
+                            diameter=initial_diameters)
 
 
 print('Particle Set Created')
@@ -323,15 +331,12 @@ print('Particle Set Created')
 sample_kernel = pset.Kernel(local_kernels.SampleField)
 pset.execute(sample_kernel, dt=0)
 pset.execute(pset.Kernel(PolyTEOS10_bsq))
+pset.execute(pset.Kernel(local_kernels.SinkingVelocity))
 
 # Loading kernels
-kernels = pset.Kernel(local_kernels.AdvectionRK4_3D) + sample_kernel + pset.Kernel(PolyTEOS10_bsq) # + pset.Kernel(local_kernels.periodicBC) + pset.Kernel(local_kernels.reflectiveBC)
-kernels += pset.Kernel(local_kernels.ML_freeze)
-
-
-if sinking_v:
-    print('v_s')
-    kernels += pset.Kernel(local_kernels.SinkingVelocity)
+kernels = sample_kernel + pset.Kernel(PolyTEOS10_bsq) + pset.Kernel(local_kernels.periodicBC) + pset.Kernel(local_kernels.reflectiveBC)
+# kernels += pset.Kernel(local_kernels.ML_freeze)
+kernels += pset.Kernel(local_kernels.AdvectionRK4_3D)
 
 if diffusion:
     print('Vertical diffusion')
@@ -342,6 +347,10 @@ if fragmentation:
     fieldset.add_constant('fragmentation_mode', frag_mode)
     fieldset.add_constant('fragmentation_timescale', frag_timescale)  # days
     kernels += pset.Kernel(local_kernels.fragmentation)
+    
+if sinking_v:
+    print('v_s')
+    kernels += pset.Kernel(local_kernels.SinkingVelocity)
 
 print('Kernels loaded')
 
