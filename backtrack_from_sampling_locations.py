@@ -74,10 +74,10 @@ if Test_run:
 else:
     # Number of particles and simulation time
     n_points = 10000
-    sim_time = 10*365  # days backwards
+    sim_time = 1*365  # days backwards
     file_range = range(7, 20)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/set_11/set11_{frag_timescale}.nc'
+        f'data_Claudio/set_13/set13_{frag_timescale}.nc'
 
 
 ###############################################################################
