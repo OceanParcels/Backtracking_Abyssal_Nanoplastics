@@ -1,5 +1,5 @@
 """
-python3 backtrack_from_sampling_locations.py 5173 dif v_s frag frag_timescale
+python3 backtrack_from_sampling_locations.py frag_ timescale
 """
 
 from glob import glob
@@ -17,12 +17,12 @@ import os
 import pandas as pd
 
 ###############################################################################
-# Setting up all parameters for simulation     #
+# Setting up all parameters for simulation
 ###############################################################################
 
 # Control Panel for Kernels
 bio_ON = False
-Test_run = True
+Test_run = False
 
 # Reading arguments
 
@@ -46,12 +46,16 @@ Test_run = True
 
 
 frag_timescale = int(sys.argv[1])
-frag_mode = 1/2
-# Initial condition
+
+# Initial conditions
 initial_depth = 5000 #int(sys.argv[1])  # 5 # 60 # 5179
 lon_sample = 6.287
 lat_sample = -32.171
 start_time = datetime.strptime('2019-12-30 12:00:00', '%Y-%m-%d %H:%M:%S')
+
+# Particle Size and Density
+particle_diameter = 5e-05  # meters
+initial_particle_density = 1380  # PET kg/m3
 
 ID = toolbox.generate_unique_key()
 submission_date = datetime.now()
@@ -59,14 +63,13 @@ submission_date = datetime.now()
 ###############################################################################
 # #
 ###############################################################################
-
 if Test_run:
     # Number of particles and simulation time
     n_points = 100
     sim_time = 10  # days backwards
     file_range = range(19, 20)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/tests/{ID}.nc'
+        f'data_Claudio/tests/{ID}.zarr'
 
 else:
     # Number of particles and simulation time
@@ -74,12 +77,8 @@ else:
     sim_time = 10*365  # days backwards
     file_range = range(7, 20)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/set_10/{ID}.zarr'
+        f'data_Claudio/set_11/set11_{frag_timescale}.nc'
 
-# Particle Size and Density
-particle_diameter = 5e-05  # meters
-initial_particle_density = 1380  # PET kg/m3
-# initial_volume = 4/3*np.pi*particle_radius**3
 
 ###############################################################################
 # Simulations Log #
@@ -96,11 +95,7 @@ log_run = {'ID': [ID],
            'sim_time': [sim_time],
            'diameter': [particle_diameter],
            'density': [initial_particle_density],
-#            'diffusion': [diffusion],
-#            'sinking_vel': [sinking_v],
-#            'fragmentation': [fragmentation],
            'frag_timescale': [frag_timescale],
-           'frag_mode': [frag_mode],
            'bio_fields': [bio_ON]}
 
 if Test_run==False:
@@ -274,10 +269,10 @@ fieldset.add_field(Field('bathymetry', bathy['Bathymetry'].values,
                          lat=bathy['nav_lat'].values,
                          mesh='spherical'))
 
+
 ###############################################################################
 # Particle Set #
 ###############################################################################
-
 
 class PlasticParticle(JITParticle):
     cons_temperature = Variable('cons_temperature', dtype=np.float32,
@@ -298,20 +293,15 @@ class PlasticParticle(JITParticle):
     particle_density = Variable('particle_density', dtype=np.float32,
                             initial=initial_particle_density)
 
+
 np.random.seed(0)
 lon_cluster = [lon_sample]*n_points
 lat_cluster = [lat_sample]*n_points
-lon_cluster = np.array(lon_cluster) # +(np.random.random(len(lon_cluster))-0.5)/24
-lat_cluster = np.array(lat_cluster) # +(np.random.random(len(lat_cluster))-0.5)/24
-
+lon_cluster = np.array(lon_cluster)
+lat_cluster = np.array(lat_cluster)
 depth_cluster = np.ones(n_points)*initial_depth  # meters
 date_cluster = [start_time]*n_points
-
 initial_diameters = np.zeros_like(lon_cluster) + particle_diameter + np.random.random(len(lon_cluster))*1e-7
-# intial_densities = 
-# intial_vs = np.zeros_like(lon_cluster)
-
-print('--------------')
 
 pset = ParticleSet.from_list(fieldset=fieldset, pclass=PlasticParticle,
                              lon=lon_cluster,
@@ -321,13 +311,10 @@ pset = ParticleSet.from_list(fieldset=fieldset, pclass=PlasticParticle,
                             diameter=initial_diameters)
 
 
-print('Particle Set Created')
-
 ###############################################################################
 # Kernels #
 ###############################################################################
 # Sampling first timestep
-
 sample_kernel = pset.Kernel(local_kernels.SampleField)
 pset.execute(sample_kernel, dt=0)
 pset.execute(pset.Kernel(PolyTEOS10_bsq), dt=0)
@@ -337,7 +324,6 @@ kernels = sample_kernel + pset.Kernel(PolyTEOS10_bsq)
 kernels += pset.Kernel(local_kernels.AdvectionRK4_3D)
 kernels += pset.Kernel(local_kernels.VerticalRandomWalk)
 
-fieldset.add_constant('fragmentation_mode', frag_mode)
 fieldset.add_constant('fragmentation_timescale', frag_timescale)  # days
 kernels += pset.Kernel(local_kernels.Fragmentation)
 
@@ -356,7 +342,7 @@ output_file = pset.ParticleFile(name=output_path,
 pset.execute(kernels,
              output_file=output_file,
              runtime=timedelta(days=sim_time),
-             dt=-timedelta(hours=1),
+             dt=-timedelta(hours=24),
              recovery={ErrorCode.ErrorOutOfBounds: local_kernels.delete_particle})
 
 output_file.close()
