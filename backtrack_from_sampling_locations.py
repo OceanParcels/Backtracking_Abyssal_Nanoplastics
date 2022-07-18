@@ -26,29 +26,29 @@ Test_run = True
 
 # Reading arguments
 
-if str(sys.argv[2]) == "dif":
-    diffusion = True
-    print('diffusion')
-else:
-    diffusion = False
+# if str(sys.argv[2]) == "dif":
+#     diffusion = True
+#     print('diffusion')
+# else:
+#     diffusion = False
 
-if str(sys.argv[3]) == "v_s":
-    sinking_v = True
-    print('v_s')
-else:
-    sinking_v = False
+# if str(sys.argv[3]) == "v_s":
+#     sinking_v = True
+#     print('v_s')
+# else:
+#     sinking_v = False
 
-if str(sys.argv[4]) == "frag":
-    fragmentation = True
-    print('fragmentation')
-else:
-    fragmentation = False
+# if str(sys.argv[4]) == "frag":
+#     fragmentation = True
+#     print('fragmentation')
+# else:
+#     fragmentation = False
 
 
-frag_timescale = int(sys.argv[5])
+frag_timescale = int(sys.argv[1])
 frag_mode = 1/2
 # Initial condition
-initial_depth = int(sys.argv[1])  # 5 # 60 # 5179
+initial_depth = 5000 #int(sys.argv[1])  # 5 # 60 # 5179
 lon_sample = 6.287
 lat_sample = -32.171
 start_time = datetime.strptime('2019-12-30 12:00:00', '%Y-%m-%d %H:%M:%S')
@@ -96,9 +96,9 @@ log_run = {'ID': [ID],
            'sim_time': [sim_time],
            'diameter': [particle_diameter],
            'density': [initial_particle_density],
-           'diffusion': [diffusion],
-           'sinking_vel': [sinking_v],
-           'fragmentation': [fragmentation],
+#            'diffusion': [diffusion],
+#            'sinking_vel': [sinking_v],
+#            'fragmentation': [fragmentation],
            'frag_timescale': [frag_timescale],
            'frag_mode': [frag_mode],
            'bio_fields': [bio_ON]}
@@ -287,7 +287,7 @@ class PlasticParticle(JITParticle):
     
     mld = Variable('mld', dtype=np.float32, initial=0)
     surface = Variable('surface', dtype=np.int32, initial=0)
-    true_z = Variable('true_z', dtype=np.float32, initial=0)
+#     true_z = Variable('true_z', dtype=np.float32, initial=0)
     Kz = Variable('Kz', dtype=np.float32, initial=0)
     seafloor = Variable('seafloor', dtype=np.float32, initial=0)
     density = Variable('density', dtype=np.float32, initial=0)
@@ -330,33 +330,28 @@ print('Particle Set Created')
 
 sample_kernel = pset.Kernel(local_kernels.SampleField)
 pset.execute(sample_kernel, dt=0)
-pset.execute(pset.Kernel(PolyTEOS10_bsq))
-pset.execute(pset.Kernel(local_kernels.SinkingVelocity))
+pset.execute(pset.Kernel(PolyTEOS10_bsq), dt=0)
 
 # Loading kernels
-kernels = sample_kernel + pset.Kernel(PolyTEOS10_bsq) + pset.Kernel(local_kernels.periodicBC) + pset.Kernel(local_kernels.reflectiveBC)
-# kernels += pset.Kernel(local_kernels.ML_freeze)
+kernels = sample_kernel + pset.Kernel(PolyTEOS10_bsq) 
 kernels += pset.Kernel(local_kernels.AdvectionRK4_3D)
+kernels += pset.Kernel(local_kernels.VerticalRandomWalk)
 
-if diffusion:
-    print('Vertical diffusion')
-    kernels += pset.Kernel(local_kernels.VerticalRandomWalk)
+fieldset.add_constant('fragmentation_mode', frag_mode)
+fieldset.add_constant('fragmentation_timescale', frag_timescale)  # days
+kernels += pset.Kernel(local_kernels.Fragmentation)
 
-if fragmentation:
-    print('fragmentation')
-    fieldset.add_constant('fragmentation_mode', frag_mode)
-    fieldset.add_constant('fragmentation_timescale', frag_timescale)  # days
-    kernels += pset.Kernel(local_kernels.fragmentation)
-    
-if sinking_v:
-    print('v_s')
-    kernels += pset.Kernel(local_kernels.SinkingVelocity)
+kernels += pset.Kernel(local_kernels.SinkingVelocity)
+
+kernels += pset.Kernel(local_kernels.reflectiveBC)
+kernels += pset.Kernel(local_kernels.periodicBC)
+kernels += pset.Kernel(local_kernels.In_MixedLayer)
 
 print('Kernels loaded')
 
 # Output file
 output_file = pset.ParticleFile(name=output_path,
-                                outputdt=timedelta(hours=24))
+                                outputdt=timedelta(hours=4))
 
 pset.execute(kernels,
              output_file=output_file,
