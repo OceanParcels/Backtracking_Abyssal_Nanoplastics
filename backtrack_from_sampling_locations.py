@@ -24,27 +24,6 @@ import pandas as pd
 bio_ON = False
 Test_run = False
 
-# Reading arguments
-
-# if str(sys.argv[2]) == "dif":
-#     diffusion = True
-#     print('diffusion')
-# else:
-#     diffusion = False
-
-# if str(sys.argv[3]) == "v_s":
-#     sinking_v = True
-#     print('v_s')
-# else:
-#     sinking_v = False
-
-# if str(sys.argv[4]) == "frag":
-#     fragmentation = True
-#     print('fragmentation')
-# else:
-#     fragmentation = False
-
-
 frag_timescale = int(sys.argv[1])
 
 # Initial conditions
@@ -54,7 +33,7 @@ lat_sample = -32.171
 start_time = datetime.strptime('2019-12-30 12:00:00', '%Y-%m-%d %H:%M:%S')
 
 # Particle Size and Density
-particle_diameter = 5e-05  # meters
+particle_diameter = 5e-08  # meters
 initial_particle_density = 1380  # PET kg/m3
 
 ID = toolbox.generate_unique_key()
@@ -74,17 +53,16 @@ if Test_run:
 else:
     # Number of particles and simulation time
     n_points = 10000
-    sim_time = 1*365  # days backwards
+    sim_time = 10*365  # days backwards
     file_range = range(7, 20)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/set_13/set13_{frag_timescale}.nc'
+        f'data_Claudio/set_13/set13_{frag_timescale}.zarr'
 
 
 ###############################################################################
 # Simulations Log #
 ###############################################################################
 log_file = 'log_simulationsV2.csv'
-# log_run = toolbox.log_params()
 log_run = {'ID': [ID],
            'test_run': [Test_run],
            'date': [submission_date],
@@ -301,7 +279,7 @@ lon_cluster = np.array(lon_cluster)
 lat_cluster = np.array(lat_cluster)
 depth_cluster = np.ones(n_points)*initial_depth  # meters
 date_cluster = [start_time]*n_points
-initial_diameters = np.zeros_like(lon_cluster) + particle_diameter + np.random.random(len(lon_cluster))*1e-7
+initial_diameters = np.zeros_like(lon_cluster) + particle_diameter + (1 - np.random.random(len(lon_cluster)))*1e-9
 
 pset = ParticleSet.from_list(fieldset=fieldset, pclass=PlasticParticle,
                              lon=lon_cluster,
@@ -337,12 +315,13 @@ print('Kernels loaded')
 
 # Output file
 output_file = pset.ParticleFile(name=output_path,
-                                outputdt=timedelta(hours=4))
+                                outputdt=timedelta(hours=24),
+                               chunks=(n_points, 100))
 
 pset.execute(kernels,
              output_file=output_file,
              runtime=timedelta(days=sim_time),
-             dt=-timedelta(hours=24),
+             dt=-timedelta(hours=1),
              recovery={ErrorCode.ErrorOutOfBounds: local_kernels.delete_particle})
 
 output_file.close()
