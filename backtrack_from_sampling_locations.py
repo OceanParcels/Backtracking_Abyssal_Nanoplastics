@@ -56,7 +56,7 @@ else:
     sim_time = 10*365  # days backwards
     file_range = range(7, 20)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/set_13/set13_{frag_timescale}.zarr'
+        f'data_Claudio/set_14/set14_{frag_timescale}.zarr'
 
 
 ###############################################################################
@@ -260,13 +260,13 @@ class PlasticParticle(JITParticle):
     
     mld = Variable('mld', dtype=np.float32, initial=0)
     surface = Variable('surface', dtype=np.int32, initial=0)
-#     true_z = Variable('true_z', dtype=np.float32, initial=0)
     Kz = Variable('Kz', dtype=np.float32, initial=0)
     seafloor = Variable('seafloor', dtype=np.float32, initial=0)
     density = Variable('density', dtype=np.float32, initial=0)
     v_s = Variable('v_s', dtype=np.float32, initial=0)
+    u = Variable('u', dtype=np.float32, initial=0)
+    v = Variable('v', dtype=np.float32, initial=0)
     w = Variable('w', dtype=np.float32, initial=0)
-    
     diameter = Variable('diameter', dtype=np.float64, initial=0)
     particle_density = Variable('particle_density', dtype=np.float32,
                             initial=initial_particle_density)

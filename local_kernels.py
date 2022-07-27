@@ -19,12 +19,12 @@ def SampleField(particle, fielset, time):
                                                   particle.lat, particle.lon]
     particle.mld = fieldset.mld[time, particle.depth,
                                 particle.lat, particle.lon]
-#     particle.true_z = particle.depth
     particle.Kz = fieldset.Kz[time, particle.depth,
                               particle.lat, particle.lon]
-
     particle.seafloor = fieldset.bathymetry[time, particle.depth,
                                    particle.lat, particle.lon]
+    particle.u, particle.v, particle.w = fieldset.UVW[time, particle.depth,
+                              particle.lat, particle.lon]
 
 
 def AdvectionRK4_3D(particle, fieldset, time):
