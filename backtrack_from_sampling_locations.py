@@ -56,7 +56,7 @@ else:
     sim_time = 10*365  # days backwards
     file_range = range(7, 20)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/set_14/set14_{frag_timescale}.zarr'
+        f'data_Claudio/set_15/set15_{frag_timescale}.zarr'
 
 
 ###############################################################################
@@ -225,7 +225,8 @@ if bio_ON:
 #            'deptht': range(min_ind, max_ind)}  # after domain expansion
 #  {'deptht': range(min_ind, max_ind)}
 
-indices = {'lat': range(750, 1300), 'lon': range(2900, 4000)}  # before domain expansion
+# indices = {'lat': range(750, 1300), 'lon': range(2900, 4000)}  # before domain expansion
+indices = {'lat': range(500, 1700), 'lon': range(2600, 4321)}
 
 fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
                               allow_time_extrapolation=False,
