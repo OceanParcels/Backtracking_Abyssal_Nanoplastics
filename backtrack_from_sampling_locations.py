@@ -27,10 +27,10 @@ Test_run = False
 frag_timescale = int(sys.argv[1])
 
 # Initial conditions
-initial_depth = 5000 #int(sys.argv[1])  # 5 # 60 # 5179
+initial_depth = 5170 #int(sys.argv[1])  # 5 # 60 # 5179
 lon_sample = 6.287
 lat_sample = -32.171
-start_time = datetime.strptime('2019-12-30 12:00:00', '%Y-%m-%d %H:%M:%S')
+start_time = datetime.strptime('2020-01-30 12:00:00', '%Y-%m-%d %H:%M:%S')
 
 # Particle Size and Density
 particle_diameter = 5e-08  # meters
@@ -46,17 +46,17 @@ if Test_run:
     # Number of particles and simulation time
     n_points = 100
     sim_time = 10  # days backwards
-    file_range = range(19, 20)
+    file_range = range(19, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
         f'data_Claudio/tests/{ID}.zarr'
 
 else:
     # Number of particles and simulation time
     n_points = 10000
-    sim_time = 10*365  # days backwards
-    file_range = range(7, 20)
+    sim_time = 4855 #10*365  # days backwards
+    file_range = range(6, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/set_15/set15_{frag_timescale}.zarr'
+        f'data_Claudio/set_16/set16_{frag_timescale}.zarr'
 
 
 ###############################################################################
@@ -268,6 +268,7 @@ class PlasticParticle(JITParticle):
     u = Variable('u', dtype=np.float32, initial=0)
     v = Variable('v', dtype=np.float32, initial=0)
     w = Variable('w', dtype=np.float32, initial=0)
+    w_k = Variable('w_k', dtype=np.float32, initial=0)
     diameter = Variable('diameter', dtype=np.float64, initial=0)
     particle_density = Variable('particle_density', dtype=np.float32,
                             initial=initial_particle_density)

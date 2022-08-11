@@ -60,6 +60,8 @@ def VerticalRandomWalk(particle, fieldset, time):
 
         if (particle.depth - 10) < seafloor and (particle.depth) > particle.mld:
             particle.depth += b * dWz
+            
+        particle.w_k = dWz/particle.dt
 
             
 def Fragmentation(particle, fieldset, time):
