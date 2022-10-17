@@ -62,8 +62,24 @@ def VerticalRandomWalk(particle, fieldset, time):
             particle.depth += b * dWz
             
         particle.w_k = dWz/particle.dt
+        
+        
+def BrownianMotion2D(particle, fieldset, time):
+    """Kernel for simple Brownian particle diffusion in zonal and meridional
+    direction. Assumes that fieldset has fields Kh_zonal and Kh_meridional
+    we don't want particles to jump on land and thereby beach"""
+    k = 10
+    
+    dWx = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
+    dWy = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
 
-            
+    bx = math.sqrt(2 * k)
+    by = math.sqrt(2 * k)
+
+    particle.lon += bx * dWx
+    particle.lat += by * dWy
+
+
 def Fragmentation(particle, fieldset, time):
     
     if particle.depth > particle.mld and particle.diameter < 1e-3:

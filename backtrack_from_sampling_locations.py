@@ -22,7 +22,8 @@ import pandas as pd
 
 # Control Panel for Kernels
 bio_ON = False
-Test_run = False
+Test_run = True
+same_initial_cond = False
 
 frag_timescale = int(sys.argv[1])
 
@@ -56,7 +57,7 @@ else:
     sim_time = 4855 #10*365  # days backwards
     file_range = range(6, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/set_16/set16_{frag_timescale}.zarr'
+        f'data_Claudio/parent/parent'  # set_16/set16_{frag_timescale}.zarr'
 
 
 ###############################################################################
@@ -275,9 +276,9 @@ class PlasticParticle(JITParticle):
 
 
 np.random.seed(0)
-lon_cluster = [lon_sample]*n_points
+lon_cluster = [lon_sample]*n_points 
 lat_cluster = [lat_sample]*n_points
-lon_cluster = np.array(lon_cluster)
+lon_cluster = np.array(lon_cluster) 
 lat_cluster = np.array(lat_cluster)
 depth_cluster = np.ones(n_points)*initial_depth  # meters
 date_cluster = [start_time]*n_points
@@ -304,8 +305,8 @@ kernels = sample_kernel + pset.Kernel(PolyTEOS10_bsq)
 kernels += pset.Kernel(local_kernels.AdvectionRK4_3D)
 kernels += pset.Kernel(local_kernels.VerticalRandomWalk)
 
-fieldset.add_constant('fragmentation_timescale', frag_timescale)  # days
-kernels += pset.Kernel(local_kernels.Fragmentation)
+#fieldset.add_constant('fragmentation_timescale', frag_timescale)  # days
+#kernels += pset.Kernel(local_kernels.Fragmentation)
 
 kernels += pset.Kernel(local_kernels.SinkingVelocity)
 
