@@ -22,15 +22,15 @@ import pandas as pd
 
 # Control Panel for Kernels
 bio_ON = False
-Test_run = True
+Test_run = False
 same_initial_cond = False
 
 frag_timescale = int(sys.argv[1])
 
 # Initial conditions
-initial_depth = 5170 #int(sys.argv[1])  # 5 # 60 # 5179
-lon_sample = 6.287
-lat_sample = -32.171
+initial_depth = 5100 #int(sys.argv[1])  # 5 # 60 # 5179
+lon_sample = 6.287 #6.25
+lat_sample = -32.171 #-32.171
 start_time = datetime.strptime('2020-01-30 12:00:00', '%Y-%m-%d %H:%M:%S')
 
 # Particle Size and Density
@@ -49,7 +49,7 @@ if Test_run:
     sim_time = 10  # days backwards
     file_range = range(19, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/tests/{ID}.zarr'
+        f'data_Claudio/tests/lll.zarr'
 
 else:
     # Number of particles and simulation time
@@ -57,7 +57,7 @@ else:
     sim_time = 4855 #10*365  # days backwards
     file_range = range(6, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/parent/parent'  # set_16/set16_{frag_timescale}.zarr'
+        f'data_Claudio/parent/parent_multi_IC.zarr'  # set_16/set16_{frag_timescale}.zarr'
 
 
 ###############################################################################
@@ -261,7 +261,9 @@ class PlasticParticle(JITParticle):
                             initial=0)
     
     mld = Variable('mld', dtype=np.float32, initial=0)
-    surface = Variable('surface', dtype=np.int32, initial=0)
+    
+    in_motion = Variable('in_motion', dtype=np.int32, initial=1)
+    
     Kz = Variable('Kz', dtype=np.float32, initial=0)
     seafloor = Variable('seafloor', dtype=np.float32, initial=0)
     density = Variable('density', dtype=np.float32, initial=0)
@@ -276,8 +278,8 @@ class PlasticParticle(JITParticle):
 
 
 np.random.seed(0)
-lon_cluster = [lon_sample]*n_points 
-lat_cluster = [lat_sample]*n_points
+lon_cluster = [lon_sample]*n_points + np.random.normal(loc=0, scale=0.01, size=n_points)
+lat_cluster = [lat_sample]*n_points + np.random.normal(loc=0, scale=0.01, size=n_points)
 lon_cluster = np.array(lon_cluster) 
 lat_cluster = np.array(lat_cluster)
 depth_cluster = np.ones(n_points)*initial_depth  # meters

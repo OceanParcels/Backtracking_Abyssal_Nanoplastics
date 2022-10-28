@@ -31,7 +31,8 @@ def AdvectionRK4_3D(particle, fieldset, time):
     """Advection of particles using fourth-order Runge-Kutta integration including vertical velocity.
 
     Function needs to be converted to Kernel object before execution"""
-    if particle.depth > particle.mld:
+    # if particle.depth > particle.mld:
+    if particle.in_motion == 1:
         (u1, v1, w1) = fieldset.UVW[particle]
         lon1 = particle.lon + u1*.5*particle.dt
         lat1 = particle.lat + v1*.5*particle.dt
@@ -52,7 +53,8 @@ def AdvectionRK4_3D(particle, fieldset, time):
 
 def VerticalRandomWalk(particle, fieldset, time):
     """Kz is in m2/s no need for convertion"""
-    if particle.depth < particle.mld:
+#     if particle.depth < particle.mld:
+    if particle.in_motion == 1:
         dWz = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
         b = math.sqrt(2 * particle.Kz)
 
@@ -82,7 +84,8 @@ def BrownianMotion2D(particle, fieldset, time):
 
 def Fragmentation(particle, fieldset, time):
     
-    if particle.depth > particle.mld and particle.diameter < 1e-3:
+    #if particle.depth > particle.mld and particle.diameter < 1e-3:
+    if particle.in_motion == 1 and particle.diameter < 1e-3:
         
         # the dt is negative in the backward simulation, but normaly the 
         # exponet should be negative. 
@@ -133,12 +136,15 @@ def reflectiveBC(particle, fieldset, time):
     if particle.depth < 0:
         particle.depth = particle.mld
         
-    if particle.depth > particle.seafloor:
-        particle.depth = particle.seafloor - 10
+#     if particle.seafloor/particle.depth < 1:
+#         particle.depth = particle.seafloor - 10
+
+    if particle.seafloor/particle.depth < 1:
+        particle.in_motion = 0
 
 
 def In_MixedLayer(particle, fieldset, time):
     if particle.depth < particle.mld:
-        particle.surface = 1
+        particle.in_motion = 1
     else:
-        particle.surface = 0
+        particle.in_motion = 0
