@@ -15,6 +15,7 @@ import sys
 import toolbox  # homemade module with useful functions
 import os
 import pandas as pd
+from tqdm import tqdm
 
 ###############################################################################
 # Setting up all parameters for simulation
@@ -49,7 +50,7 @@ if Test_run:
     sim_time = 10  # days backwards
     file_range = range(19, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/tests/lll.zarr'
+        f'data_Claudio/tests/puup.zarr'
 
 else:
     # Number of particles and simulation time
@@ -61,7 +62,7 @@ else:
 
 
 ###############################################################################
-# Simulations Log #
+# Simulations Log  
 ###############################################################################
 log_file = 'log_simulationsV2.csv'
 log_run = {'ID': [ID],
@@ -101,7 +102,9 @@ sfiles = []
 twoDfiles = []
 KZfiles = []
 
-for i in file_range:
+
+
+for i in tqdm(file_range):
     ufiles = ufiles + sorted(glob(data_path + f'psy4v3r1-daily_U_20{i:02d}*.nc'))
     vfiles = vfiles + sorted(glob(data_path + f'psy4v3r1-daily_V_20{i:02d}*.nc'))
     wfiles = wfiles + sorted(glob(data_path + f'psy4v3r1-daily_W_20{i:02d}*.nc'))
@@ -311,17 +314,18 @@ kernels += pset.Kernel(local_kernels.VerticalRandomWalk)
 #kernels += pset.Kernel(local_kernels.Fragmentation)
 
 kernels += pset.Kernel(local_kernels.SinkingVelocity)
-
+kernels += pset.Kernel(local_kernels.stuck_Seafloor)
 kernels += pset.Kernel(local_kernels.reflectiveBC)
 kernels += pset.Kernel(local_kernels.periodicBC)
 kernels += pset.Kernel(local_kernels.In_MixedLayer)
+
 
 print('Kernels loaded')
 
 # Output file
 output_file = pset.ParticleFile(name=output_path,
                                 outputdt=timedelta(hours=24),
-                               chunks=(n_points, 100))
+                               chunks=(n_points, 10))
 
 pset.execute(kernels,
              output_file=output_file,

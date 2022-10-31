@@ -54,7 +54,7 @@ def AdvectionRK4_3D(particle, fieldset, time):
 def VerticalRandomWalk(particle, fieldset, time):
     """Kz is in m2/s no need for convertion"""
 #     if particle.depth < particle.mld:
-    if particle.in_motion == 1:
+    if particle.in_motion == 1 and particle.depth < particle.mld:
         dWz = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
         b = math.sqrt(2 * particle.Kz)
 
@@ -139,12 +139,16 @@ def reflectiveBC(particle, fieldset, time):
 #     if particle.seafloor/particle.depth < 1:
 #         particle.depth = particle.seafloor - 10
 
-    if particle.seafloor/particle.depth < 1:
+
+def stuck_Seafloor(particle, fieldset, time):
+    if particle.seafloor/particle.depth <= 1:
         particle.in_motion = 0
+    else:
+        particle.in_motion = 1
 
 
 def In_MixedLayer(particle, fieldset, time):
     if particle.depth < particle.mld:
-        particle.in_motion = 1
-    else:
         particle.in_motion = 0
+    else:
+        particle.in_motion = 1
