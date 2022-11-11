@@ -50,7 +50,7 @@ if Test_run:
     sim_time = 10  # days backwards
     file_range = range(19, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/tests/puup.zarr'
+        f'data_Claudio/tests/peeep.zarr'
 
 else:
     # Number of particles and simulation time
@@ -58,7 +58,7 @@ else:
     sim_time = 4855 #10*365  # days backwards
     file_range = range(6, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/parent/parent_multi_IC.zarr'  # set_16/set16_{frag_timescale}.zarr'
+        f'data_Claudio/set_17/set17_{frag_timescale}.zarr'
 
 
 ###############################################################################
@@ -310,8 +310,8 @@ kernels = sample_kernel + pset.Kernel(PolyTEOS10_bsq)
 kernels += pset.Kernel(local_kernels.AdvectionRK4_3D)
 kernels += pset.Kernel(local_kernels.VerticalRandomWalk)
 
-#fieldset.add_constant('fragmentation_timescale', frag_timescale)  # days
-#kernels += pset.Kernel(local_kernels.Fragmentation)
+fieldset.add_constant('fragmentation_timescale', frag_timescale)  # days
+kernels += pset.Kernel(local_kernels.Fragmentation)
 
 kernels += pset.Kernel(local_kernels.SinkingVelocity)
 kernels += pset.Kernel(local_kernels.stuck_Seafloor)

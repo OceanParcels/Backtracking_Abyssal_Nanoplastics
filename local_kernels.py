@@ -93,21 +93,18 @@ def Fragmentation(particle, fieldset, time):
 
         if ParcelsRandom.random(0., 1.) > fragmentation_prob:
             nummer = ParcelsRandom.random(0., 1.)
-            plim0 = 8./14.5
-            plim1 = 12./14.5
-            plim2 = 14./14.5
-
+            plim0 = 32/42 #8./14.5
+            plim1 = 40/42 #12./14.5
+            plim2 = 2/42 #14./14.5
+            
             if nummer <= plim0:
                 frag_mode = 8
 
             elif (plim0 < nummer) and (nummer <= plim1):
                 frag_mode = 4
 
-            elif (plim1 < nummer) and (nummer <= plim2):
-                frag_mode = 2
-
             else:
-                frag_mode = 1
+                frag_mode = 2
 
             particle.diameter = particle.diameter*frag_mode # division for reverse
             
