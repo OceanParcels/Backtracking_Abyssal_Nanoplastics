@@ -15,6 +15,7 @@ import sys
 import toolbox  # homemade module with useful functions
 import os
 import pandas as pd
+from tqdm import tqdm
 
 ###############################################################################
 # Setting up all parameters for simulation
@@ -23,13 +24,14 @@ import pandas as pd
 # Control Panel for Kernels
 bio_ON = False
 Test_run = False
+same_initial_cond = False
 
 frag_timescale = int(sys.argv[1])
 
 # Initial conditions
-initial_depth = 5170 #int(sys.argv[1])  # 5 # 60 # 5179
-lon_sample = 6.287
-lat_sample = -32.171
+initial_depth = 5100 #int(sys.argv[1])  # 5 # 60 # 5179
+lon_sample = 6.287 #6.25
+lat_sample = -32.171 #-32.171
 start_time = datetime.strptime('2020-01-30 12:00:00', '%Y-%m-%d %H:%M:%S')
 
 # Particle Size and Density
@@ -48,7 +50,7 @@ if Test_run:
     sim_time = 10  # days backwards
     file_range = range(19, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/tests/{ID}.zarr'
+        f'data_Claudio/tests/peeep.zarr'
 
 else:
     # Number of particles and simulation time
@@ -56,11 +58,11 @@ else:
     sim_time = 4855 #10*365  # days backwards
     file_range = range(6, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/set_16/set16_{frag_timescale}.zarr'
+        f'data_Claudio/set_17/set17_{frag_timescale}.zarr'
 
 
 ###############################################################################
-# Simulations Log #
+# Simulations Log  
 ###############################################################################
 log_file = 'log_simulationsV2.csv'
 log_run = {'ID': [ID],
@@ -100,7 +102,9 @@ sfiles = []
 twoDfiles = []
 KZfiles = []
 
-for i in file_range:
+
+
+for i in tqdm(file_range):
     ufiles = ufiles + sorted(glob(data_path + f'psy4v3r1-daily_U_20{i:02d}*.nc'))
     vfiles = vfiles + sorted(glob(data_path + f'psy4v3r1-daily_V_20{i:02d}*.nc'))
     wfiles = wfiles + sorted(glob(data_path + f'psy4v3r1-daily_W_20{i:02d}*.nc'))
@@ -260,7 +264,9 @@ class PlasticParticle(JITParticle):
                             initial=0)
     
     mld = Variable('mld', dtype=np.float32, initial=0)
-    surface = Variable('surface', dtype=np.int32, initial=0)
+    
+    in_motion = Variable('in_motion', dtype=np.int32, initial=1)
+    
     Kz = Variable('Kz', dtype=np.float32, initial=0)
     seafloor = Variable('seafloor', dtype=np.float32, initial=0)
     density = Variable('density', dtype=np.float32, initial=0)
@@ -275,9 +281,9 @@ class PlasticParticle(JITParticle):
 
 
 np.random.seed(0)
-lon_cluster = [lon_sample]*n_points
-lat_cluster = [lat_sample]*n_points
-lon_cluster = np.array(lon_cluster)
+lon_cluster = [lon_sample]*n_points + np.random.normal(loc=0, scale=0.01, size=n_points)
+lat_cluster = [lat_sample]*n_points + np.random.normal(loc=0, scale=0.01, size=n_points)
+lon_cluster = np.array(lon_cluster) 
 lat_cluster = np.array(lat_cluster)
 depth_cluster = np.ones(n_points)*initial_depth  # meters
 date_cluster = [start_time]*n_points
@@ -308,17 +314,18 @@ fieldset.add_constant('fragmentation_timescale', frag_timescale)  # days
 kernels += pset.Kernel(local_kernels.Fragmentation)
 
 kernels += pset.Kernel(local_kernels.SinkingVelocity)
-
+kernels += pset.Kernel(local_kernels.stuck_Seafloor)
 kernels += pset.Kernel(local_kernels.reflectiveBC)
 kernels += pset.Kernel(local_kernels.periodicBC)
 kernels += pset.Kernel(local_kernels.In_MixedLayer)
+
 
 print('Kernels loaded')
 
 # Output file
 output_file = pset.ParticleFile(name=output_path,
                                 outputdt=timedelta(hours=24),
-                               chunks=(n_points, 100))
+                               chunks=(n_points, 10))
 
 pset.execute(kernels,
              output_file=output_file,

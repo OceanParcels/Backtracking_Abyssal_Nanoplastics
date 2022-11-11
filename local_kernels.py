@@ -31,7 +31,8 @@ def AdvectionRK4_3D(particle, fieldset, time):
     """Advection of particles using fourth-order Runge-Kutta integration including vertical velocity.
 
     Function needs to be converted to Kernel object before execution"""
-    if particle.depth > particle.mld:
+    # if particle.depth > particle.mld:
+    if particle.in_motion == 1:
         (u1, v1, w1) = fieldset.UVW[particle]
         lon1 = particle.lon + u1*.5*particle.dt
         lat1 = particle.lat + v1*.5*particle.dt
@@ -52,7 +53,8 @@ def AdvectionRK4_3D(particle, fieldset, time):
 
 def VerticalRandomWalk(particle, fieldset, time):
     """Kz is in m2/s no need for convertion"""
-    if particle.depth < particle.mld:
+#     if particle.depth < particle.mld:
+    if particle.in_motion == 1 and particle.depth < particle.mld:
         dWz = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
         b = math.sqrt(2 * particle.Kz)
 
@@ -62,11 +64,28 @@ def VerticalRandomWalk(particle, fieldset, time):
             particle.depth += b * dWz
             
         particle.w_k = dWz/particle.dt
+        
+        
+def BrownianMotion2D(particle, fieldset, time):
+    """Kernel for simple Brownian particle diffusion in zonal and meridional
+    direction. Assumes that fieldset has fields Kh_zonal and Kh_meridional
+    we don't want particles to jump on land and thereby beach"""
+    k = 10
+    
+    dWx = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
+    dWy = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
 
-            
+    bx = math.sqrt(2 * k)
+    by = math.sqrt(2 * k)
+
+    particle.lon += bx * dWx
+    particle.lat += by * dWy
+
+
 def Fragmentation(particle, fieldset, time):
     
-    if particle.depth > particle.mld and particle.diameter < 1e-3:
+    #if particle.depth > particle.mld and particle.diameter < 1e-3:
+    if particle.in_motion == 1 and particle.diameter < 1e-3:
         
         # the dt is negative in the backward simulation, but normaly the 
         # exponet should be negative. 
@@ -74,21 +93,18 @@ def Fragmentation(particle, fieldset, time):
 
         if ParcelsRandom.random(0., 1.) > fragmentation_prob:
             nummer = ParcelsRandom.random(0., 1.)
-            plim0 = 8./14.5
-            plim1 = 12./14.5
-            plim2 = 14./14.5
-
+            plim0 = 32/42 #8./14.5
+            plim1 = 40/42 #12./14.5
+            plim2 = 2/42 #14./14.5
+            
             if nummer <= plim0:
                 frag_mode = 8
 
             elif (plim0 < nummer) and (nummer <= plim1):
                 frag_mode = 4
 
-            elif (plim1 < nummer) and (nummer <= plim2):
-                frag_mode = 2
-
             else:
-                frag_mode = 1
+                frag_mode = 2
 
             particle.diameter = particle.diameter*frag_mode # division for reverse
             
@@ -117,12 +133,19 @@ def reflectiveBC(particle, fieldset, time):
     if particle.depth < 0:
         particle.depth = particle.mld
         
-    if particle.depth > particle.seafloor:
-        particle.depth = particle.seafloor - 10
+#     if particle.seafloor/particle.depth < 1:
+#         particle.depth = particle.seafloor - 10
+
+
+def stuck_Seafloor(particle, fieldset, time):
+    if particle.seafloor/particle.depth <= 1:
+        particle.in_motion = 0
+    else:
+        particle.in_motion = 1
 
 
 def In_MixedLayer(particle, fieldset, time):
     if particle.depth < particle.mld:
-        particle.surface = 1
+        particle.in_motion = 0
     else:
-        particle.surface = 0
+        particle.in_motion = 1
