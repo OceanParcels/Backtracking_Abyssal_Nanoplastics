@@ -82,8 +82,8 @@ def BrownianMotion2D(particle, fieldset, time):
     particle.lat += by * dWy
 
 
-def Fragmentation(particle, fieldset, time):
-    
+def Fragmentation16(particle, fieldset, time):
+    N_total = 170
     #if particle.depth > particle.mld and particle.diameter < 1e-3:
     if particle.in_motion == 1 and particle.diameter < 1e-3:
         
@@ -93,14 +93,18 @@ def Fragmentation(particle, fieldset, time):
 
         if ParcelsRandom.random(0., 1.) > fragmentation_prob:
             nummer = ParcelsRandom.random(0., 1.)
-            plim0 = 32/42 #8./14.5
-            plim1 = 40/42 #12./14.5
-            plim2 = 2/42 #14./14.5
+            plim3 = 128/N_total
+            plim2 = plim3 + 32/N_total 
+            plim1 = plim2 + 8/N_total 
+            plim0 = plim1 + 2/N_total
             
-            if nummer <= plim0:
+            if nummer <= plim3:
+                frag_mode = 16
+            
+            elif (plim3 < nummer) and (nummer <= plim2):
                 frag_mode = 8
 
-            elif (plim0 < nummer) and (nummer <= plim1):
+            elif (plim2 < nummer) and (nummer <= plim1):
                 frag_mode = 4
 
             else:
@@ -109,6 +113,32 @@ def Fragmentation(particle, fieldset, time):
             particle.diameter = particle.diameter*frag_mode # division for reverse
             
 
+def Fragmentation(particle, fieldset, time):
+    N_total = 42 
+    
+    if particle.in_motion == 1 and particle.diameter < 1e-3:
+        
+        # the dt is negative in the backward simulation, but normaly the 
+        # exponet should be negative. 
+        fragmentation_prob = math.exp(particle.dt/(fieldset.fragmentation_timescale*86400.))
+
+        if ParcelsRandom.random(0., 1.) > fragmentation_prob:
+            nummer = ParcelsRandom.random(0., 1.)
+
+            plim2 = 32/N_total
+            plim1 = plim2 + 8/N_total 
+            plim0 = plim1 + 2/N_total
+            
+            if nummer <= plim2:
+                frag_mode = 8
+            
+            elif (plim2 < nummer) and (nummer <= plim1):
+                frag_mode = 4
+
+            else:
+                frag_mode = 2
+
+            particle.diameter = particle.diameter*frag_mode # division for reverse
             
 
 def SinkingVelocity(particle, fieldset, time):
