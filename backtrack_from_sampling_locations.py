@@ -10,7 +10,7 @@ from parcels.application_kernels.TEOSseawaterdensity import PolyTEOS10_bsq
 from datetime import timedelta
 from datetime import datetime
 import xarray as xr
-import local_kernels
+import kernels_simple as local_kernels
 import sys
 import toolbox  # homemade module with useful functions
 import os
@@ -265,7 +265,7 @@ class PlasticParticle(JITParticle):
     
     mld = Variable('mld', dtype=np.float32, initial=0)
     
-    in_motion = Variable('in_motion', dtype=np.int32, initial=1)
+    in_motion = Variable('in_motion', dtype=np.float32, initial=1)
     
     Kz = Variable('Kz', dtype=np.float32, initial=0)
     seafloor = Variable('seafloor', dtype=np.float32, initial=0)
@@ -311,7 +311,7 @@ kernels += pset.Kernel(local_kernels.AdvectionRK4_3D)
 kernels += pset.Kernel(local_kernels.VerticalRandomWalk)
 
 fieldset.add_constant('fragmentation_timescale', frag_timescale)  # days
-kernels += pset.Kernel(local_kernels.Fragmentation16)
+kernels += pset.Kernel(local_kernels.Fragmentation)
 
 kernels += pset.Kernel(local_kernels.SinkingVelocity)
 kernels += pset.Kernel(local_kernels.stuck_Seafloor)
