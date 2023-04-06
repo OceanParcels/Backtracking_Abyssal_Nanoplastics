@@ -1,4 +1,4 @@
-from parcels import ParcelsRandom, Variable
+from parcels import ParcelsRandom, Variable, JITParticle
 import math
 import numpy as np
 
@@ -13,22 +13,21 @@ class PlasticParticle(JITParticle):
                                 initial=0)
     abs_salinity = Variable('abs_salinity', dtype=np.float32,
                             initial=0)
-    
     mld = Variable('mld', dtype=np.float32, initial=0)
-    
     in_mld = Variable('in_mld', dtype=np.float32, initial=0)
-    
     Kz = Variable('Kz', dtype=np.float32, initial=0)
     seafloor = Variable('seafloor', dtype=np.float32, initial=0)
     density = Variable('density', dtype=np.float32, initial=0)
     v_s = Variable('v_s', dtype=np.float32, initial=0)
+    u = Variable('u', dtype=np.float32, initial=0)
+    v = Variable('v', dtype=np.float32, initial=0)
     w = Variable('w', dtype=np.float32, initial=0)
     w_k = Variable('w_k', dtype=np.float32, initial=0)
     diameter = Variable('diameter', dtype=np.float64, initial=0)
     particle_density = Variable('particle_density', dtype=np.float32,
-                            initial=initial_particle_density)
-    tau_p = Variable('tau_p',  dtype=np.float32,
                             initial=0)
+    beta = Variable('beta',  dtype=np.float32, initial=0)
+    tau_p = Variable('tau_p',  dtype=np.float32, initial=0)
 
 
 def delete_particle(particle, fieldset, time):
@@ -48,22 +47,6 @@ def SampleField(particle, fieldset, time):
     particle.seafloor = fieldset.bathymetry[time, particle.depth,
                                    particle.lat, particle.lon]
     particle.u, particle.v, particle.w = fieldset.UVW[time, particle.depth,
-                              particle.lat, particle.lon]
-
-
-def SampleField_1D(particle, fieldset, time):
-    particle.cons_temperature = fieldset.cons_temperature[time, particle.depth,
-                                                          particle.lat,
-                                                          particle.lon]
-    particle.abs_salinity = fieldset.abs_salinity[time, particle.depth,
-                                                  particle.lat, particle.lon]
-    particle.mld = fieldset.mld[time, particle.depth,
-                                particle.lat, particle.lon]
-    particle.Kz = fieldset.Kz[time, particle.depth,
-                              particle.lat, particle.lon]
-    particle.seafloor = fieldset.bathymetry[time, particle.depth,
-                                   particle.lat, particle.lon]
-    _, __, particle.w = fieldset.UVW[time, particle.depth,
                               particle.lat, particle.lon]
 
 
@@ -95,13 +78,13 @@ def AdvectionRK4_1D(particle, fieldset, time):
 
     Function needs to be converted to Kernel object before execution"""
     # if particle.depth > particle.mld:
-    (_, __, w1) = fieldset.UVW[particle]
+    (u1, v1, w1) = fieldset.UVW[particle]
     lon = particle.lon
     lat = particle.lat
     dep1 = particle.depth + w1*.5*particle.dt
-    (_, __, w2) = fieldset.UVW[time + .5 * particle.dt, dep1, lat, lon, particle]
+    (u2, v2, w2) = fieldset.UVW[time + .5 * particle.dt, dep1, lat, lon, particle]
     dep2 = particle.depth + w2*.5*particle.dt
-    (_, __, w3) = fieldset.UVW[time + .5 * particle.dt, dep2, lat, lon, particle]
+    (u3, v3, w3) = fieldset.UVW[time + .5 * particle.dt, dep2, lat, lon, particle]
     dep3 = particle.depth + w3*particle.dt
     (u4, v4, w4) = fieldset.UVW[time + particle.dt, dep3, lat, lon, particle]
     particle.depth += (w1 + 2*w2 + 2*w3 + w4) / 6. * particle.dt
@@ -110,7 +93,7 @@ def AdvectionRK4_1D(particle, fieldset, time):
 def VerticalRandomWalk(particle, fieldset, time):
     """Kz is in m2/s no need for convertion"""
 #     if particle.depth < particle.mld:
-    if particle.depth < particle.mld:
+    if particle.depth > 10:
         dWz = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
         b = math.sqrt(2 * particle.Kz)
 
@@ -206,18 +189,21 @@ def Fragmentation(particle, fieldset, time):
         
 
 def SinkingVelocity(particle, fieldset, time):
-    if particle.depth > particle.mld:
-        rho_p = particle.particle_density
-        rho_f = particle.density
-        beta = 3*particle.density/(2*particle.particle_density + particle.density)
-        tau_p = particle.diameter*particle.diameter/(12*beta*1e-6)
-        particle.tau_p = tau_p
-        v_s = (1 - beta)*9.81*tau_p
-        particle.v_s = v_s
+    rho_p = particle.particle_density
+    rho_f = particle.density
+    beta = 3*particle.density/(2*particle.particle_density + particle.density)
+    particle.beta = beta
+    viscosity = 1.5e-6 
+    tau_p = particle.diameter*particle.diameter/(3*beta*viscosity)
+    particle.tau_p = tau_p
+    v_s = (1 - beta)*9.81*tau_p
+    particle.v_s = v_s
+
+    if particle.depth > 10:
         particle.depth = particle.depth + v_s*particle.dt
     else:
         particle.v_s = 0
-
+    
 
 def periodicBC(particle, fieldset, time):
     if particle.lon <= -180.:

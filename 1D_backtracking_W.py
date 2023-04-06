@@ -4,8 +4,8 @@ python3 backtrack_from_sampling_locations.py frag_ timescale
 # %%
 from glob import glob
 import numpy as np
-from parcels import FieldSet, ParticleSet, JITParticle
-from parcels import ErrorCode, Variable, Field
+from parcels import FieldSet, ParticleSet
+from parcels import ErrorCode, Field
 from parcels.application_kernels.TEOSseawaterdensity import PolyTEOS10_bsq
 from datetime import timedelta
 from datetime import datetime
@@ -19,8 +19,6 @@ import xarray as xr
 
 # Control Panel for Kernels
 Test_run = False
-same_initial_cond = False
-
 frag_timescale = int(sys.argv[1])
 
 # Initial conditions
@@ -28,7 +26,6 @@ initial_depth = 5100 #int(sys.argv[1])  # 5 # 60 # 5179
 lon_sample = 6.287 #6.25
 lat_sample = -32.171 #-32.171
 start_time = datetime.strptime('2020-01-30 12:00:00', '%Y-%m-%d %H:%M:%S')
-
 
 # Particle Size and Density
 particle_diameter = 5e-08  # meters
@@ -41,7 +38,7 @@ data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
 if Test_run:
     # Number of particles and simulation time
     n_points = 100
-    sim_time = 10  # days backwards
+    sim_time = 12  # days backwards
     file_range = range(19, 20)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
                     f'data_Claudio/tests/1d-aW.zarr'
@@ -177,26 +174,6 @@ fieldset.add_field(Field('bathymetry', bathy['Bathymetry'].values,
 # Particle Set #
 ###############################################################################
 
-class PlasticParticle(JITParticle):
-    cons_temperature = Variable('cons_temperature', dtype=np.float32,
-                                initial=0)
-    abs_salinity = Variable('abs_salinity', dtype=np.float32,
-                            initial=0)
-    
-    mld = Variable('mld', dtype=np.float32, initial=0)
-    
-    in_mld = Variable('in_mld', dtype=np.float32, initial=0)
-    
-    Kz = Variable('Kz', dtype=np.float32, initial=0)
-    seafloor = Variable('seafloor', dtype=np.float32, initial=0)
-    density = Variable('density', dtype=np.float32, initial=0)
-    v_s = Variable('v_s', dtype=np.float32, initial=0)
-    w = Variable('w', dtype=np.float32, initial=0)
-    w_k = Variable('w_k', dtype=np.float32, initial=0)
-    diameter = Variable('diameter', dtype=np.float64, initial=0)
-    particle_density = Variable('particle_density', dtype=np.float32,
-                            initial=initial_particle_density)
-
 np.random.seed(0)
 lon_cluster = [lon_sample]*n_points
 lat_cluster = [lat_sample]*n_points
@@ -206,21 +183,25 @@ lat_cluster = np.array(lat_cluster)
 depth_cluster = np.ones(n_points)*initial_depth  # meters
 date_cluster = [start_time]*n_points
 initial_diameters = np.zeros_like(lon_cluster) + particle_diameter + (1 - np.random.random(len(lon_cluster)))*1e-9
+initial_densities = np.zeros_like(lon_cluster) + initial_particle_density
 
-pset = ParticleSet.from_list(fieldset=fieldset, pclass=PlasticParticle,
+pset = ParticleSet.from_list(fieldset=fieldset, pclass=kernels_simple.PlasticParticle,
                              lon=lon_cluster,
                              lat=lat_cluster,
                              depth=depth_cluster,
                              time=date_cluster,
-                            diameter=initial_diameters)
+                            diameter=initial_diameters,
+                            particle_density=initial_densities)
 
 # %%#############################################################################
 # Kernels #
 ###############################################################################
 # Sampling first timestep
-sample_kernel = pset.Kernel(kernels_simple.SampleField_1D)
+sample_kernel = pset.Kernel(kernels_simple.SampleField)
 pset.execute(sample_kernel, dt=0)
 pset.execute(pset.Kernel(PolyTEOS10_bsq), dt=0)
+sinking_kernel = pset.Kernel(kernels_simple.SinkingVelocity)
+pset.execute(sinking_kernel, dt=0)
 
 # Loading kernels
 kernels = sample_kernel + pset.Kernel(PolyTEOS10_bsq)
@@ -230,7 +211,7 @@ kernels += pset.Kernel(kernels_simple.VerticalRandomWalk)
 fieldset.add_constant('fragmentation_timescale', frag_timescale)  # days
 kernels += pset.Kernel(kernels_simple.Fragmentation)
 
-kernels += pset.Kernel(kernels_simple.SinkingVelocity)
+kernels += sinking_kernel
 kernels += pset.Kernel(kernels_simple.reflectiveBC)
 kernels += pset.Kernel(kernels_simple.In_MixedLayer)
 
@@ -248,5 +229,3 @@ pset.execute(kernels,
              recovery={ErrorCode.ErrorOutOfBounds: kernels_simple.delete_particle})
 
 output_file.close()
-
-# %%
