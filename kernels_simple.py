@@ -194,7 +194,7 @@ def SinkingVelocity(particle, fieldset, time):
     beta = 3*particle.density/(2*particle.particle_density + particle.density)
     particle.beta = beta
     viscosity = 1.5e-6 
-    tau_p = particle.diameter*particle.diameter/(3*beta*viscosity)
+    tau_p = particle.diameter*particle.diameter/(12*beta*viscosity)
     particle.tau_p = tau_p
     v_s = (1 - beta)*9.81*tau_p
     particle.v_s = v_s

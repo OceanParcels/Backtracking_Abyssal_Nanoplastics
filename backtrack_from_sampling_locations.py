@@ -20,12 +20,12 @@ import xarray as xr
 
 # Control Panel for Kernels
 Test_run = True
-frag_timescale = int(sys.argv[1])
+frag_timescale = 11# int(sys.argv[1])
 
 # Initial conditions
 initial_depth = 5100 #int(sys.argv[1])  # 5 # 60 # 5179
-lon_sample = 6.287 #6.25
-lat_sample = -32.171 #-32.171
+lon_sample = 6.287
+lat_sample = -32.171
 start_time = datetime.strptime('2020-01-30 12:00:00', '%Y-%m-%d %H:%M:%S')
 
 # Particle Size and Density
@@ -40,7 +40,6 @@ if Test_run:
     # Number of particles and simulation time
     n_points = 100
     sim_time = 12  # days backwards
-    file_range = range(19, 20)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
                     f'data_Claudio/tests/3d-b.zarr'
     
@@ -204,6 +203,7 @@ kernels += pset.Kernel(kernels_simple.BrownianMotion2D)
 kernels += pset.Kernel(kernels_simple.VerticalRandomWalk)
 kernels += pset.Kernel(kernels_simple.Fragmentation)
 kernels += sinking_kernel
+kernels += pset.Kernel(kernels_simple.periodicBC)
 kernels += pset.Kernel(kernels_simple.reflectiveBC)
 kernels += pset.Kernel(kernels_simple.In_MixedLayer)
 
