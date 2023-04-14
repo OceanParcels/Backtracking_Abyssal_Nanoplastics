@@ -73,39 +73,39 @@ def AdvectionRK4_3D(particle, fieldset, time):
     particle.depth += (w1 + 2*w2 + 2*w3 + w4) / 6. * particle.dt
 
 
-def AdvectionRK4_1D(particle, fieldset, time):
-    """Advection of particles using fourth-order Runge-Kutta integration including vertical velocity.
+# def AdvectionRK4_1D(particle, fieldset, time):
+#     """Advection of particles using fourth-order Runge-Kutta integration including vertical velocity.
 
-    Function needs to be converted to Kernel object before execution"""
-    # if particle.depth > particle.mld:
-    (u1, v1, w1) = fieldset.UVW[particle]
-    lon = particle.lon
-    lat = particle.lat
-    dep1 = particle.depth + w1*.5*particle.dt
-    (u2, v2, w2) = fieldset.UVW[time + .5 * particle.dt, dep1, lat, lon, particle]
-    dep2 = particle.depth + w2*.5*particle.dt
-    (u3, v3, w3) = fieldset.UVW[time + .5 * particle.dt, dep2, lat, lon, particle]
-    dep3 = particle.depth + w3*particle.dt
-    (u4, v4, w4) = fieldset.UVW[time + particle.dt, dep3, lat, lon, particle]
-    particle.depth += (w1 + 2*w2 + 2*w3 + w4) / 6. * particle.dt
+#     Function needs to be converted to Kernel object before execution"""
+#     # if particle.depth > particle.mld:
+#     (u1, v1, w1) = fieldset.UVW[particle]
+#     lon = particle.lon
+#     lat = particle.lat
+#     dep1 = particle.depth + w1*.5*particle.dt
+#     (u2, v2, w2) = fieldset.UVW[time + .5 * particle.dt, dep1, lat, lon, particle]
+#     dep2 = particle.depth + w2*.5*particle.dt
+#     (u3, v3, w3) = fieldset.UVW[time + .5 * particle.dt, dep2, lat, lon, particle]
+#     dep3 = particle.depth + w3*particle.dt
+#     (u4, v4, w4) = fieldset.UVW[time + particle.dt, dep3, lat, lon, particle]
+#     particle.depth += (w1 + 2*w2 + 2*w3 + w4) / 6. * particle.dt
 
 
-def VerticalRandomWalk(particle, fieldset, time):
-    """Kz is in m2/s no need for convertion"""
-#     if particle.depth < particle.mld:
-    if particle.depth > 10:
-        dWz = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
-        b = math.sqrt(2 * particle.Kz)
+# def VerticalRandomWalk(particle, fieldset, time):
+#     """Kz is in m2/s no need for convertion"""
+# #     if particle.depth < particle.mld:
+#     if particle.depth > 10:
+#         dWz = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
+#         b = math.sqrt(2 * particle.Kz)
 
-        seafloor = particle.seafloor
+#         seafloor = particle.seafloor
 
-        if (particle.depth - 10) < seafloor and (particle.depth) > particle.mld:
-            particle.depth += b * dWz
+#         if (particle.depth - 10) < seafloor and (particle.depth) > particle.mld:
+#             particle.depth += b * dWz
             
-        particle.w_k = dWz/particle.dt
+#         particle.w_k = dWz/particle.dt
         
-    else:
-        particle.w_k = 0
+#     else:
+#         particle.w_k = 0
         
         
 def BrownianMotion2D(particle, fieldset, time):
@@ -124,38 +124,38 @@ def BrownianMotion2D(particle, fieldset, time):
     particle.lat += by * dWy
 
 
-def Fragmentation16(particle, fieldset, time):
-    N_total = 170
-    #if particle.depth > particle.mld and particle.diameter < 1e-3:
-    if particle.diameter < 1e-3:
+# def Fragmentation16(particle, fieldset, time):
+#     N_total = 170
+#     #if particle.depth > particle.mld and particle.diameter < 1e-3:
+#     if particle.diameter < 1e-3:
         
-        # the dt is negative in the backward simulation, but normaly the 
-        # exponet should be negative. 
-        fragmentation_prob = math.exp(particle.dt/(fieldset.fragmentation_timescale*86400.))
+#         # the dt is negative in the backward simulation, but normaly the 
+#         # exponet should be negative. 
+#         fragmentation_prob = math.exp(particle.dt/(fieldset.fragmentation_timescale*86400.))
 
-        if ParcelsRandom.random(0., 1.) > fragmentation_prob:
-            nummer = ParcelsRandom.random(0., 1.)
-            plim3 = 128/N_total
-            plim2 = plim3 + 32/N_total 
-            plim1 = plim2 + 8/N_total 
-            plim0 = plim1 + 2/N_total
+#         if ParcelsRandom.random(0., 1.) > fragmentation_prob:
+#             nummer = ParcelsRandom.random(0., 1.)
+#             plim3 = 128/N_total
+#             plim2 = plim3 + 32/N_total 
+#             plim1 = plim2 + 8/N_total 
+#             plim0 = plim1 + 2/N_total
             
-            if nummer <= plim3:
-                frag_mode = 16
+#             if nummer <= plim3:
+#                 frag_mode = 16
             
-            elif (plim3 < nummer) and (nummer <= plim2):
-                frag_mode = 8
+#             elif (plim3 < nummer) and (nummer <= plim2):
+#                 frag_mode = 8
 
-            elif (plim2 < nummer) and (nummer <= plim1):
-                frag_mode = 4
+#             elif (plim2 < nummer) and (nummer <= plim1):
+#                 frag_mode = 4
 
-            else:
-                frag_mode = 2
+#             else:
+#                 frag_mode = 2
 
-            particle.diameter = particle.diameter*frag_mode # division for reverse
+#             particle.diameter = particle.diameter*frag_mode # division for reverse
             
-    else:
-        particle.diameter = particle.diameter
+#     else:
+#         particle.diameter = particle.diameter
             
 
 def Fragmentation(particle, fieldset, time):

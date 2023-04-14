@@ -5,7 +5,7 @@ python3 backtrack_from_sampling_locations.py frag_ timescale
 from glob import glob
 import numpy as np
 from parcels import FieldSet, ParticleSet
-from parcels import ErrorCode, Field
+from parcels import ErrorCode, Field, AdvectionRK4_3D
 from parcels.application_kernels.TEOSseawaterdensity import PolyTEOS10_bsq
 from datetime import timedelta
 from datetime import datetime
@@ -19,8 +19,8 @@ import xarray as xr
 ###############################################################################
 
 # Control Panel for Kernels
-Test_run = True
-frag_timescale = 11# int(sys.argv[1])
+Test_run = False
+frag_timescale = int(sys.argv[1])
 
 # Initial conditions
 initial_depth = 5100 #int(sys.argv[1])  # 5 # 60 # 5179
@@ -51,7 +51,7 @@ else:
     sim_time = 4855 #10*365  # days backwards
     file_range = range(6, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/set_19_errata/set19_e_{frag_timescale}.zarr'
+        f'data_Claudio/set_19_nodiff/set19_nodiff_{frag_timescale}.zarr'
     chunking_express = 8
 
     wfiles = []
@@ -107,9 +107,9 @@ variables = {'U': 'vozocrtx',
              'V': 'vomecrty',
              'W': 'vovecrtz',
              'cons_temperature': 'votemper',
-            'abs_salinity': 'vosaline',
-            'mld': 'somxlavt',
-            'Kz': 'votkeavt'}
+             'abs_salinity': 'vosaline',
+             'mld': 'somxlavt',
+             'Kz': 'votkeavt'}
 
 dimensions = {'U': {'lon': 'glamf',
                     'lat': 'gphif',
@@ -123,20 +123,19 @@ dimensions = {'U': {'lon': 'glamf',
                     'lat': 'gphif',
                     'depth': 'depthw',
                     'time': 'time_counter'},
-               'cons_temperature': {'lon': 'glamf',
+              'cons_temperature': {'lon': 'glamf',
                                   'lat': 'gphif',
                                   'depth': 'depthw',
                                   'time': 'time_counter'},
-
-                 'abs_salinity': {'lon': 'glamf',
+              'abs_salinity': {'lon': 'glamf',
                               'lat': 'gphif',
                               'depth': 'depthw',
                               'time': 'time_counter'},
-                 'mld': {'lon': 'glamf',
+              'mld': {'lon': 'glamf',
                             'lat': 'gphif',
                             'depth': 'deptht',
                             'time': 'time_counter'},
-                 'Kz': {'lon': 'glamf',
+              'Kz': {'lon': 'glamf',
                     'lat': 'gphif',
                     'depth': 'depthw',
                     'time': 'time_counter'}}
@@ -146,14 +145,13 @@ dimensions = {'U': {'lon': 'glamf',
 # %%Fieldset #
 ###############################################################################
 
-indices = {'lat': range(500, 1700), 'lon': range(2600, 4321)}
-# indices = {'lat': range(0, 1700), 'lon': range(2000, 4321)}
+# indices = {'lat': range(0, 1700), 'lon': range(200, 4321)}
+indices = {'lat': range(0, 1700), 'lon': range(2000, 4321)}
 
 fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
                               allow_time_extrapolation=False,
                               indices=indices,
                               chunksize=False)
-
 
 
 bathy = xr.load_dataset(bathy_file)
@@ -183,8 +181,8 @@ pset = ParticleSet.from_list(fieldset=fieldset, pclass=kernels_simple.PlasticPar
                              lat=lat_cluster,
                              depth=depth_cluster,
                              time=date_cluster,
-                            diameter=initial_diameters,
-                            particle_density=initial_densities)
+                             diameter=initial_diameters,
+                             particle_density=initial_densities)
 
 ###############################################################################
 # %%Kernels #
@@ -198,9 +196,9 @@ pset.execute(sinking_kernel, dt=0)
 
 # Loading kernels
 kernels = sample_kernel + pset.Kernel(PolyTEOS10_bsq)
-kernels += pset.Kernel(kernels_simple.AdvectionRK4_3D)
+kernels += AdvectionRK4_3D
 kernels += pset.Kernel(kernels_simple.BrownianMotion2D)
-kernels += pset.Kernel(kernels_simple.VerticalRandomWalk)
+# kernels += pset.Kernel(kernels_simple.VerticalRandomWalk)
 kernels += pset.Kernel(kernels_simple.Fragmentation)
 kernels += sinking_kernel
 kernels += pset.Kernel(kernels_simple.periodicBC)
