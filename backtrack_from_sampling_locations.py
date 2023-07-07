@@ -20,13 +20,12 @@ import xarray as xr
 
 # Control Panel for Kernels
 Test_run = False
-frag_timescale = int(sys.argv[1])
 
 # Initial conditions
-initial_depth = 5100 #int(sys.argv[1])  # 5 # 60 # 5179
+initial_depth = 5050 #int(sys.argv[1])  # 5 # 60 # 5179
 lon_sample = 6.287
 lat_sample = -32.171
-start_time = datetime.strptime('2020-01-30 12:00:00', '%Y-%m-%d %H:%M:%S')
+start_time = datetime.strptime('2019-01-20 12:00:00', '%Y-%m-%d %H:%M:%S')
 
 # Particle Size and Density
 particle_diameter = 5e-08  # meters
@@ -38,21 +37,26 @@ data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
 ###############################################################################
 if Test_run:
     # Number of particles and simulation time
+    frag_timescale = 10
     n_points = 100
     sim_time = 12  # days backwards
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-                    f'data_Claudio/tests/3d-b.zarr'
+                    f'data_Claudio/tests/HC13_5100.zarr'
     
-    wfiles = sorted(glob(data_path+'psy4v3r1-daily_W_2020-01-*.nc'))
-    chunking_express = 1
+    wfiles = sorted(glob(data_path+'psy4v3r1-daily_W_2019-01-*.nc'))
+    chunking_express = 12
 else:
     # Number of particles and simulation time
+    frag_timescale = int(sys.argv[1])
     n_points = 10000
-    sim_time = 4855 #10*365  # days backwards
+    sim_time = 4484
+    # From 11 October 2006 to and including 20 January 2019 (forward).
+    # Result: 4485 days or 12 years, 3 months, 10 days including the end date.
+    
     file_range = range(6, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/set_19_nodiff/set19_nodiff_{frag_timescale}.zarr'
-    chunking_express = 8
+        f'data_Claudio/hc13/hc13_no_fragmentation.zarr'
+    chunking_express = 500
 
     wfiles = []
     for i in tqdm(file_range):
@@ -146,7 +150,8 @@ dimensions = {'U': {'lon': 'glamf',
 ###############################################################################
 
 # indices = {'lat': range(0, 1700), 'lon': range(200, 4321)}
-indices = {'lat': range(0, 1700), 'lon': range(2000, 4321)}
+# indices = {'lat': range(0, 1700), 'lon': range(2000, 4321)}
+indices = {'lat': range(0, 1700)}
 
 fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
                               allow_time_extrapolation=False,
@@ -160,7 +165,28 @@ fieldset.add_field(Field('bathymetry', bathy['Bathymetry'].values,
                          lat=bathy['nav_lat'].values,
                          mesh='spherical'))
 
-fieldset.add_constant('fragmentation_timescale', frag_timescale) 
+
+coastal_file = '/nethome/6525954/coastal_distance_ORCA12_V3.3.nc' 
+coastal = xr.load_dataset(coastal_file)
+fieldset.add_field(Field('Distance', coastal['dis_var'].values,
+                    lon=coastal['lon'].values,
+                    lat=coastal['lat'].values,
+                    mesh='spherical'))
+
+K_h = 1.5e-6 # m^2/s. molecular diffusion. 
+
+fieldset.add_field(Field('Kh_zonal', np.zeros_like(bathy['Bathymetry'].values) + K_h,
+                         lon=bathy['nav_lon'].values,
+                         lat=bathy['nav_lat'].values,
+                         mesh='spherical'))
+
+fieldset.add_field(Field('Kh_meridional', np.zeros_like(bathy['Bathymetry'].values) + K_h,
+                         lon=bathy['nav_lon'].values,
+                         lat=bathy['nav_lat'].values,
+                         mesh='spherical'))
+
+fieldset.add_constant('fragmentation_timescale', frag_timescale)
+
 ###############################################################################
 # %%Particle Set #
 ###############################################################################
@@ -173,7 +199,7 @@ lat_cluster = np.array(lat_cluster)
 
 depth_cluster = np.ones(n_points)*initial_depth  # meters
 date_cluster = [start_time]*n_points
-initial_diameters = np.zeros_like(lon_cluster) + particle_diameter + (1 - np.random.random(len(lon_cluster)))*1e-9
+initial_diameters = np.zeros_like(lon_cluster) + np.random.uniform(1e-9, 1e-6, n_points)
 initial_densities = np.zeros_like(lon_cluster) + initial_particle_density
 
 pset = ParticleSet.from_list(fieldset=fieldset, pclass=kernels_simple.PlasticParticle,
@@ -197,13 +223,14 @@ pset.execute(sinking_kernel, dt=0)
 # Loading kernels
 kernels = sample_kernel + pset.Kernel(PolyTEOS10_bsq)
 kernels += AdvectionRK4_3D
-kernels += pset.Kernel(kernels_simple.BrownianMotion2D)
-# kernels += pset.Kernel(kernels_simple.VerticalRandomWalk)
-kernels += pset.Kernel(kernels_simple.Fragmentation)
 kernels += sinking_kernel
+kernels += pset.Kernel(kernels_simple.VerticalRandomWalk)
+kernels += pset.Kernel(kernels_simple.BrownianMotion2D)
+# kernels += pset.Kernel(kernels_simple.Fragmentation)
 kernels += pset.Kernel(kernels_simple.periodicBC)
 kernels += pset.Kernel(kernels_simple.reflectiveBC)
-kernels += pset.Kernel(kernels_simple.In_MixedLayer)
+kernels += pset.Kernel(kernels_simple.At_Surface)
+kernels += pset.Kernel(kernels_simple.At_Seafloor)
 
 print('Kernels loaded')
 

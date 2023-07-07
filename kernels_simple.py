@@ -14,8 +14,6 @@ class PlasticParticle(JITParticle):
     abs_salinity = Variable('abs_salinity', dtype=np.float32,
                             initial=0)
     mld = Variable('mld', dtype=np.float32, initial=0)
-    in_mld = Variable('in_mld', dtype=np.float32, initial=0)
-    Kz = Variable('Kz', dtype=np.float32, initial=0)
     seafloor = Variable('seafloor', dtype=np.float32, initial=0)
     density = Variable('density', dtype=np.float32, initial=0)
     v_s = Variable('v_s', dtype=np.float32, initial=0)
@@ -27,8 +25,9 @@ class PlasticParticle(JITParticle):
     particle_density = Variable('particle_density', dtype=np.float32,
                             initial=0)
     beta = Variable('beta',  dtype=np.float32, initial=0)
-    tau_p = Variable('tau_p',  dtype=np.float32, initial=0)
-
+    distance = Variable('distance', dtype= np.float32, initial=0)
+    surface = Variable('surface', dtype=np.float32, initial=0)
+    bottom = Variable('bottom', dtype=np.float32, initial=0)
 
 def delete_particle(particle, fieldset, time):
     particle.delete()
@@ -42,12 +41,10 @@ def SampleField(particle, fieldset, time):
                                                   particle.lat, particle.lon]
     particle.mld = fieldset.mld[time, particle.depth,
                                 particle.lat, particle.lon]
-    particle.Kz = fieldset.Kz[time, particle.depth,
-                              particle.lat, particle.lon]
     particle.seafloor = fieldset.bathymetry[time, particle.depth,
                                    particle.lat, particle.lon]
-    particle.u, particle.v, particle.w = fieldset.UVW[time, particle.depth,
-                              particle.lat, particle.lon]
+    particle.distance = fieldset.Distance[time, particle.depth, 
+                                          particle.lat, particle.lon]
 
 
 def AdvectionRK4_3D(particle, fieldset, time):
@@ -55,7 +52,8 @@ def AdvectionRK4_3D(particle, fieldset, time):
 
     Function needs to be converted to Kernel object before execution"""
     # if particle.depth > particle.mld:
-    (u1, v1, w1) = fieldset.UVW[particle]
+    (u1, v1, w1) = fieldset.UVW[time, particle.depth, particle.lat, particle.lon]
+    particle.u, particle.v, particle.w = u1, v1, w1
     lon1 = particle.lon + u1*.5*particle.dt
     lat1 = particle.lat + v1*.5*particle.dt
     dep1 = particle.depth + w1*.5*particle.dt
@@ -73,53 +71,55 @@ def AdvectionRK4_3D(particle, fieldset, time):
     particle.depth += (w1 + 2*w2 + 2*w3 + w4) / 6. * particle.dt
 
 
-# def AdvectionRK4_1D(particle, fieldset, time):
-#     """Advection of particles using fourth-order Runge-Kutta integration including vertical velocity.
-
-#     Function needs to be converted to Kernel object before execution"""
-#     # if particle.depth > particle.mld:
-#     (u1, v1, w1) = fieldset.UVW[particle]
-#     lon = particle.lon
-#     lat = particle.lat
-#     dep1 = particle.depth + w1*.5*particle.dt
-#     (u2, v2, w2) = fieldset.UVW[time + .5 * particle.dt, dep1, lat, lon, particle]
-#     dep2 = particle.depth + w2*.5*particle.dt
-#     (u3, v3, w3) = fieldset.UVW[time + .5 * particle.dt, dep2, lat, lon, particle]
-#     dep3 = particle.depth + w3*particle.dt
-#     (u4, v4, w4) = fieldset.UVW[time + particle.dt, dep3, lat, lon, particle]
-#     particle.depth += (w1 + 2*w2 + 2*w3 + w4) / 6. * particle.dt
-
-
-# def VerticalRandomWalk(particle, fieldset, time):
-#     """Kz is in m2/s no need for convertion"""
-# #     if particle.depth < particle.mld:
-#     if particle.depth > 10:
-#         dWz = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
-#         b = math.sqrt(2 * particle.Kz)
-
-#         seafloor = particle.seafloor
-
-#         if (particle.depth - 10) < seafloor and (particle.depth) > particle.mld:
-#             particle.depth += b * dWz
-            
-#         particle.w_k = dWz/particle.dt
+def VerticalRandomWalk(particle, fieldset, time):
+    """Kz from fieldset is in m2/s no need for convertion.
+        Implementing 1D random walk in vertical direction based on 
+        Ross and Sharples (2004) https://doi.org/10.4319/lom.2004.2.289
         
-#     else:
-#         particle.w_k = 0
+        Needs to run first sinking velocity kernel to calculate sinking velocity v_s
+    """
+    
+    d_z = 1 #metters. delta z
+    k_z = fieldset.Kz[time, particle.depth,
+                              particle.lat, particle.lon]
+    
+    kz_dz = fieldset.Kz[time, particle.depth + d_z,
+                              particle.lat, particle.lon]
+    
+    Kz_deterministic = (k_z + kz_dz)/d_z * particle.dt # gradient of Kz in z direction
+    
+    Kz_random = ParcelsRandom.uniform(-1., 1.) * math.sqrt(math.fabs(particle.dt) * 6 * k_z)
+    
+    Kz_movement = particle.v_s*particle.dt # the movements is the sinking velocity
+    
+    vertical_diffusion = Kz_deterministic + Kz_random + Kz_movement
+    
+    particle.w_k = vertical_diffusion/particle.dt
+    
+    if particle.depth > particle.seafloor:
+        # if particle gets below seafloor diffusion not added
+        particle.depth += 0
+        
+    elif particle.depth < 10:
+        # if particle gets above 10m diffusion not added
+        particle.depth += 0
+        
+    else:
+        particle.depth = particle.depth + vertical_diffusion
         
         
 def BrownianMotion2D(particle, fieldset, time):
     """Kernel for simple Brownian particle diffusion in zonal and meridional
     direction. Assumes that fieldset has fields Kh_zonal and Kh_meridional
     we don't want particles to jump on land and thereby beach"""
-    k = 10
     
     dWx = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
     dWy = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
 
-    bx = math.sqrt(2 * k)
-    by = math.sqrt(2 * k)
-
+    bx = math.sqrt(2 * fieldset.Kh_zonal[time, particle.depth, 
+                                          particle.lat, particle.lon])
+    by = math.sqrt(2 * fieldset.Kh_meridional[time, particle.depth, 
+                                          particle.lat, particle.lon])
     particle.lon += bx * dWx
     particle.lat += by * dWy
 
@@ -191,18 +191,21 @@ def Fragmentation(particle, fieldset, time):
 def SinkingVelocity(particle, fieldset, time):
     rho_p = particle.particle_density
     rho_f = particle.density
-    beta = 3*particle.density/(2*particle.particle_density + particle.density)
+    
+    beta = rho_p/rho_f
     particle.beta = beta
-    viscosity = 1.5e-6 
-    tau_p = particle.diameter*particle.diameter/(12*beta*viscosity)
-    particle.tau_p = tau_p
-    v_s = (1 - beta)*9.81*tau_p
+    
+    viscosity = 1.5e-6
+    
+    radius = particle.diameter/2
+ 
+    v_s = (beta - 1)*9.81*2*radius**2/(9*viscosity)
     particle.v_s = v_s
 
-    if particle.depth > 10:
-        particle.depth = particle.depth + v_s*particle.dt
+    if particle.depth < 10:
+        particle.depth += 0
     else:
-        particle.v_s = 0
+        particle.depth = particle.depth + v_s*particle.dt
     
 
 def periodicBC(particle, fieldset, time):
@@ -216,11 +219,21 @@ def reflectiveBC(particle, fieldset, time):
     if particle.depth < 0:
         particle.depth = 10
     else:
-        particle.depth = particle.depth
+        particle.depth += 0
 
-
-def In_MixedLayer(particle, fieldset, time):
-    if particle.depth > particle.mld:
-        particle.in_mld = 0.
+        
+def At_Surface(particle, fieldset, time):
+    if particle.depth < 10:
+        particle.surface = 1.
+        particle.delete()
     else:
-        particle.in_mld = 1.
+        particle.surface = 0.
+        
+        
+def At_Seafloor(particle, fieldset, time):
+    if particle.depth > particle.seafloor:
+        particle.bottom = 1.
+        particle.delete()
+        
+    else:
+        particle.bottom = 0.
