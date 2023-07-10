@@ -5,7 +5,6 @@ import numpy as np
 # NOTES: 
 # particle.depth > 0. If negative, it must be above the surface.
 # particle.mld > 0. the mixed layer depth at the lat and lon of the particle.
-# The Kernels are listed in the order in which they are run.
 
 
 class PlasticParticle(JITParticle):
@@ -21,7 +20,7 @@ class PlasticParticle(JITParticle):
     v = Variable('v', dtype=np.float32, initial=0)
     w = Variable('w', dtype=np.float32, initial=0)
     w_k = Variable('w_k', dtype=np.float32, initial=0)
-    diameter = Variable('diameter', dtype=np.float64, initial=0)
+    radius = Variable('radius', dtype=np.float64, initial=0)
     particle_density = Variable('particle_density', dtype=np.float32,
                             initial=0)
     beta = Variable('beta',  dtype=np.float32, initial=0)
@@ -45,13 +44,25 @@ def SampleField(particle, fieldset, time):
                                    particle.lat, particle.lon]
     particle.distance = fieldset.Distance[time, particle.depth, 
                                           particle.lat, particle.lon]
+    
+
+def Initialize_particle_depth(particle, fieldset, time):
+    """
+    Due to the the interpolation of the bathymetry field to determine
+    the particle position from the seafloor. The seafloor depth varies
+    from particle to particle. Therefore, the particle depth is set to
+    the seafloor depth at the beginning of the simulation plus 10 m.
+    """
+    floor = fieldset.bathymetry[time, particle.depth,
+                                   particle.lat, particle.lon]
+    particle.depth = floor - fieldset.distance_from_seafloor
 
 
 def AdvectionRK4_3D(particle, fieldset, time):
     """Advection of particles using fourth-order Runge-Kutta integration including vertical velocity.
 
     Function needs to be converted to Kernel object before execution"""
-    # if particle.depth > particle.mld:
+    
     (u1, v1, w1) = fieldset.UVW[time, particle.depth, particle.lat, particle.lon]
     particle.u, particle.v, particle.w = u1, v1, w1
     lon1 = particle.lon + u1*.5*particle.dt
@@ -66,9 +77,21 @@ def AdvectionRK4_3D(particle, fieldset, time):
     lat3 = particle.lat + v3*particle.dt
     dep3 = particle.depth + w3*particle.dt
     (u4, v4, w4) = fieldset.UVW[time + particle.dt, dep3, lat3, lon3, particle]
-    particle.lon += (u1 + 2*u2 + 2*u3 + u4) / 6. * particle.dt
-    particle.lat += (v1 + 2*v2 + 2*v3 + v4) / 6. * particle.dt
-    particle.depth += (w1 + 2*w2 + 2*w3 + w4) / 6. * particle.dt
+    
+    if particle.depth > particle.seafloor:
+        particle.lon += 0
+        particle.lat += 0
+        particle.depth += 0
+        
+    elif particle.depth < 10:
+        particle.lon += 0
+        particle.lat += 0
+        particle.depth += 0
+        
+    else:
+        particle.lon += (u1 + 2*u2 + 2*u3 + u4) / 6. * particle.dt
+        particle.lat += (v1 + 2*v2 + 2*v3 + v4) / 6. * particle.dt
+        particle.depth += (w1 + 2*w2 + 2*w3 + w4) / 6. * particle.dt
 
 
 def VerticalRandomWalk(particle, fieldset, time):
@@ -92,7 +115,7 @@ def VerticalRandomWalk(particle, fieldset, time):
     
     Kz_movement = particle.v_s*particle.dt # the movements is the sinking velocity
     
-    vertical_diffusion = Kz_deterministic + Kz_random + Kz_movement
+    vertical_diffusion = Kz_deterministic + Kz_random
     
     particle.w_k = vertical_diffusion/particle.dt
     
@@ -110,8 +133,9 @@ def VerticalRandomWalk(particle, fieldset, time):
         
 def BrownianMotion2D(particle, fieldset, time):
     """Kernel for simple Brownian particle diffusion in zonal and meridional
-    direction. Assumes that fieldset has fields Kh_zonal and Kh_meridional
-    we don't want particles to jump on land and thereby beach"""
+    direction. Assumes that fieldset has fields Kh_zonal and Kh_meridional.
+    This two fields are constant and have the same values of Kh, which is 
+    defined in the main script. The Kh=1.5e-6m/s2, same as Sinking velocity kernel."""
     
     dWx = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
     dWy = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
@@ -120,14 +144,24 @@ def BrownianMotion2D(particle, fieldset, time):
                                           particle.lat, particle.lon])
     by = math.sqrt(2 * fieldset.Kh_meridional[time, particle.depth, 
                                           particle.lat, particle.lon])
-    particle.lon += bx * dWx
-    particle.lat += by * dWy
+    
+    if particle.depth < 10:
+        particle.lon += 0
+        particle.lat += 0
+        
+    elif particle.depth > particle.seafloor:
+        particle.lon += 0
+        particle.lat += 0
+        
+    else:
+        particle.lon += bx * dWx
+        particle.lat += by * dWy
 
 
 # def Fragmentation16(particle, fieldset, time):
 #     N_total = 170
-#     #if particle.depth > particle.mld and particle.diameter < 1e-3:
-#     if particle.diameter < 1e-3:
+#     #if particle.depth > particle.mld and particle.radius < 1e-3:
+#     if particle.radius < 1e-3:
         
 #         # the dt is negative in the backward simulation, but normaly the 
 #         # exponet should be negative. 
@@ -152,16 +186,16 @@ def BrownianMotion2D(particle, fieldset, time):
 #             else:
 #                 frag_mode = 2
 
-#             particle.diameter = particle.diameter*frag_mode # division for reverse
+#             particle.radius = particle.radius*frag_mode # division for reverse
             
 #     else:
-#         particle.diameter = particle.diameter
+#         particle.radius = particle.radius
             
 
 def Fragmentation(particle, fieldset, time):
-    N_total = 42 
+    N_total = 42.5
     
-    if particle.diameter < 1e-3:
+    if particle.radius < 1e-3:
         
         # the dt is negative in the backward simulation, but normaly the 
         # exponet should be negative. 
@@ -170,40 +204,53 @@ def Fragmentation(particle, fieldset, time):
         if ParcelsRandom.random(0., 1.) > fragmentation_prob:
             nummer = ParcelsRandom.random(0., 1.)
 
-            plim2 = 32/N_total
-            plim1 = plim2 + 8/N_total 
-            plim0 = plim1 + 2/N_total
+            plim3 = 32/N_total
+            plim2 = plim3 + 8/N_total 
+            plim1 = plim2 + 2/N_total
+            plim0 = plim1 + 0.5/N_total
             
-            if nummer <= plim2:
-                frag_mode = 8
+            if nummer <= plim3:
+                particle.radius = 8*particle.radius
             
+            elif (plim3 < nummer) and (nummer <= plim2):
+                particle.radius = 4*particle.radius
+
             elif (plim2 < nummer) and (nummer <= plim1):
-                frag_mode = 4
+                particle.radius = 2*particle.radius
 
             else:
-                frag_mode = 2
-
-            particle.diameter = particle.diameter*frag_mode # division for reverse
+                particle.radius = 1.259921*particle.radius
+            
     else:
-        particle.diameter = particle.diameter
+        particle.radius += 0
         
 
 def SinkingVelocity(particle, fieldset, time):
-    rho_p = particle.particle_density
-    rho_f = particle.density
+    """
+    Sinking velocity kernel based on Stokes law. 
+    This definition is equivalent to monroy 2017 but more convininet
+    because of how we define beta. 
+    """
     
-    beta = rho_p/rho_f
+    rho_p = particle.particle_density # Extract particle density
+    rho_f = particle.density # Extract fluid density
+    
+    beta = rho_p/rho_f # denitiy ratio
     particle.beta = beta
     
-    viscosity = 1.5e-6
+    viscosity = 1.5e-6 # m2/s
     
-    radius = particle.diameter/2
+    radius = particle.radius/2 # radius of the particle
  
     v_s = (beta - 1)*9.81*2*radius**2/(9*viscosity)
     particle.v_s = v_s
 
     if particle.depth < 10:
         particle.depth += 0
+        
+    elif particle.depth > particle.seafloor:
+        particle.depth += 0
+        
     else:
         particle.depth = particle.depth + v_s*particle.dt
     
@@ -211,6 +258,7 @@ def SinkingVelocity(particle, fieldset, time):
 def periodicBC(particle, fieldset, time):
     if particle.lon <= -180.:
         particle.lon += 360.
+        
     elif particle.lon >= 180.:
         particle.lon -= 360.
 
@@ -218,6 +266,7 @@ def periodicBC(particle, fieldset, time):
 def reflectiveBC(particle, fieldset, time):
     if particle.depth < 0:
         particle.depth = 10
+        
     else:
         particle.depth += 0
 
@@ -225,7 +274,7 @@ def reflectiveBC(particle, fieldset, time):
 def At_Surface(particle, fieldset, time):
     if particle.depth < 10:
         particle.surface = 1.
-        particle.delete()
+        
     else:
         particle.surface = 0.
         
@@ -233,7 +282,6 @@ def At_Surface(particle, fieldset, time):
 def At_Seafloor(particle, fieldset, time):
     if particle.depth > particle.seafloor:
         particle.bottom = 1.
-        particle.delete()
         
     else:
         particle.bottom = 0.

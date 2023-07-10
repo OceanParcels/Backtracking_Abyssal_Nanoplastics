@@ -5,7 +5,7 @@ python3 backtrack_from_sampling_locations.py frag_ timescale
 from glob import glob
 import numpy as np
 from parcels import FieldSet, ParticleSet
-from parcels import ErrorCode, Field, AdvectionRK4_3D
+from parcels import ErrorCode, Field
 from parcels.application_kernels.TEOSseawaterdensity import PolyTEOS10_bsq
 from datetime import timedelta
 from datetime import datetime
@@ -22,13 +22,12 @@ import xarray as xr
 Test_run = False
 
 # Initial conditions
-initial_depth = 5050 #int(sys.argv[1])  # 5 # 60 # 5179
+initial_depth = 5050 #This gets corrected by runinng kernel Initialize_particle_depth at dt=0
 lon_sample = 6.287
 lat_sample = -32.171
 start_time = datetime.strptime('2019-01-20 12:00:00', '%Y-%m-%d %H:%M:%S')
 
 # Particle Size and Density
-particle_diameter = 5e-08  # meters
 initial_particle_density = 1380  # PET kg/m3
 
 data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
@@ -37,16 +36,19 @@ data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
 ###############################################################################
 if Test_run:
     # Number of particles and simulation time
+    distance_from_seafloor = 50
     frag_timescale = 10
     n_points = 100
     sim_time = 12  # days backwards
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-                    f'data_Claudio/tests/HC13_5100.zarr'
+                    f'data_Claudio/tests/HC13_5100_test_bottom2.zarr'
     
     wfiles = sorted(glob(data_path+'psy4v3r1-daily_W_2019-01-*.nc'))
     chunking_express = 12
+    
 else:
     # Number of particles and simulation time
+    distance_from_seafloor = 50 #m
     frag_timescale = int(sys.argv[1])
     n_points = 10000
     sim_time = 4484
@@ -55,7 +57,7 @@ else:
     
     file_range = range(6, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/hc13/hc13_no_fragmentation.zarr'
+        f'data_Claudio/hc13/hc13_no_frag.zarr'
     chunking_express = 500
 
     wfiles = []
@@ -186,6 +188,7 @@ fieldset.add_field(Field('Kh_meridional', np.zeros_like(bathy['Bathymetry'].valu
                          mesh='spherical'))
 
 fieldset.add_constant('fragmentation_timescale', frag_timescale)
+fieldset.add_constant('distance_from_seafloor', distance_from_seafloor)
 
 ###############################################################################
 # %%Particle Set #
@@ -199,7 +202,7 @@ lat_cluster = np.array(lat_cluster)
 
 depth_cluster = np.ones(n_points)*initial_depth  # meters
 date_cluster = [start_time]*n_points
-initial_diameters = np.zeros_like(lon_cluster) + np.random.uniform(1e-9, 1e-6, n_points)
+initial_radius = np.zeros_like(lon_cluster) + np.random.uniform(1e-9, 5e-7, n_points)
 initial_densities = np.zeros_like(lon_cluster) + initial_particle_density
 
 pset = ParticleSet.from_list(fieldset=fieldset, pclass=kernels_simple.PlasticParticle,
@@ -207,13 +210,15 @@ pset = ParticleSet.from_list(fieldset=fieldset, pclass=kernels_simple.PlasticPar
                              lat=lat_cluster,
                              depth=depth_cluster,
                              time=date_cluster,
-                             diameter=initial_diameters,
+                             radius=initial_radius,
                              particle_density=initial_densities)
 
 ###############################################################################
 # %%Kernels #
 ###############################################################################
 # Sampling first timestep
+intial_depth = pset.Kernel(kernels_simple.Initialize_particle_depth)
+pset.execute(intial_depth, dt=0)
 sample_kernel = pset.Kernel(kernels_simple.SampleField)
 pset.execute(sample_kernel, dt=0)
 pset.execute(pset.Kernel(PolyTEOS10_bsq), dt=0)
@@ -222,9 +227,9 @@ pset.execute(sinking_kernel, dt=0)
 
 # Loading kernels
 kernels = sample_kernel + pset.Kernel(PolyTEOS10_bsq)
-kernels += AdvectionRK4_3D
-kernels += sinking_kernel
+kernels += pset.Kernel(kernels_simple.AdvectionRK4_3D)
 kernels += pset.Kernel(kernels_simple.VerticalRandomWalk)
+kernels += sinking_kernel
 kernels += pset.Kernel(kernels_simple.BrownianMotion2D)
 # kernels += pset.Kernel(kernels_simple.Fragmentation)
 kernels += pset.Kernel(kernels_simple.periodicBC)
