@@ -28,7 +28,7 @@ lat_sample = -32.171
 start_time = datetime.strptime('2019-01-20 12:00:00', '%Y-%m-%d %H:%M:%S')
 
 # Particle Size and Density
-initial_particle_density = 1380  # PET kg/m3
+initial_particle_density = 1380  # PET & PVC kg/m3
 
 data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
 ###############################################################################
@@ -37,11 +37,11 @@ data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
 if Test_run:
     # Number of particles and simulation time
     distance_from_seafloor = 50
-    frag_timescale = 10
+    frag_timescale = 3
     n_points = 100
     sim_time = 12  # days backwards
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-                    f'data_Claudio/tests/HC13_5100_test_bottom2.zarr'
+                    f'data_Claudio/tests/HC13_5100_test_frag3.zarr'
     
     wfiles = sorted(glob(data_path+'psy4v3r1-daily_W_2019-01-*.nc'))
     chunking_express = 12
@@ -57,7 +57,7 @@ else:
     
     file_range = range(6, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/hc13/hc13_no_frag.zarr'
+        f'data_Claudio/hc13/hc13_{frag_timescale}.zarr'
     chunking_express = 500
 
     wfiles = []
@@ -228,10 +228,10 @@ pset.execute(sinking_kernel, dt=0)
 # Loading kernels
 kernels = sample_kernel + pset.Kernel(PolyTEOS10_bsq)
 kernels += pset.Kernel(kernels_simple.AdvectionRK4_3D)
-kernels += pset.Kernel(kernels_simple.VerticalRandomWalk)
 kernels += sinking_kernel
+kernels += pset.Kernel(kernels_simple.VerticalRandomWalk)
 kernels += pset.Kernel(kernels_simple.BrownianMotion2D)
-# kernels += pset.Kernel(kernels_simple.Fragmentation)
+kernels += pset.Kernel(kernels_simple.Fragmentation)
 kernels += pset.Kernel(kernels_simple.periodicBC)
 kernels += pset.Kernel(kernels_simple.reflectiveBC)
 kernels += pset.Kernel(kernels_simple.At_Surface)

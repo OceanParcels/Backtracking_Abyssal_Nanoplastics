@@ -5,7 +5,7 @@ import numpy as np
 # NOTES: 
 # particle.depth > 0. If negative, it must be above the surface.
 # particle.mld > 0. the mixed layer depth at the lat and lon of the particle.
-
+# careful with the dt.It is negative because of the backward integration.
 
 class PlasticParticle(JITParticle):
     cons_temperature = Variable('cons_temperature', dtype=np.float32,
@@ -94,6 +94,25 @@ def AdvectionRK4_3D(particle, fieldset, time):
         particle.depth += (w1 + 2*w2 + 2*w3 + w4) / 6. * particle.dt
 
 
+def SinkingVelocity(particle, fieldset, time):
+    """
+    Sinking velocity kernel based on Stokes law. 
+    This definition is equivalent to monroy 2017 but more convininet
+    because of how we define beta. 
+    """
+    
+    rho_p = particle.particle_density # Extract particle density
+    rho_f = particle.density # Extract fluid density
+    
+    beta = rho_p/rho_f # denitiy ratio
+    particle.beta = beta
+    
+    viscosity = 1.5e-6 # m2/s
+ 
+    v_s = (beta - 1)*9.81*2*particle.radius**2/(9*viscosity)
+    particle.v_s = v_s
+
+
 def VerticalRandomWalk(particle, fieldset, time):
     """Kz from fieldset is in m2/s no need for convertion.
         Implementing 1D random walk in vertical direction based on 
@@ -109,15 +128,15 @@ def VerticalRandomWalk(particle, fieldset, time):
     kz_dz = fieldset.Kz[time, particle.depth + d_z,
                               particle.lat, particle.lon]
     
-    Kz_deterministic = (k_z + kz_dz)/d_z * particle.dt # gradient of Kz in z direction
+    Kz_deterministic = (k_z + kz_dz)/d_z * math.fabs(particle.dt) # gradient of Kz in z direction
     
     Kz_random = ParcelsRandom.uniform(-1., 1.) * math.sqrt(math.fabs(particle.dt) * 6 * k_z)
     
-    Kz_movement = particle.v_s*particle.dt # the movements is the sinking velocity
+    Kz_movement = particle.v_s*particle.dt # dt < 0!
     
-    vertical_diffusion = Kz_deterministic + Kz_random
+    particle.w_k = vertical_diffusion/math.fabs(particle.dt) # m/s for comparison with w
     
-    particle.w_k = vertical_diffusion/particle.dt
+    vertical_diffusion = Kz_deterministic + Kz_random + Kz_movement
     
     if particle.depth > particle.seafloor:
         # if particle gets below seafloor diffusion not added
@@ -158,44 +177,10 @@ def BrownianMotion2D(particle, fieldset, time):
         particle.lat += by * dWy
 
 
-# def Fragmentation16(particle, fieldset, time):
-#     N_total = 170
-#     #if particle.depth > particle.mld and particle.radius < 1e-3:
-#     if particle.radius < 1e-3:
-        
-#         # the dt is negative in the backward simulation, but normaly the 
-#         # exponet should be negative. 
-#         fragmentation_prob = math.exp(particle.dt/(fieldset.fragmentation_timescale*86400.))
-
-#         if ParcelsRandom.random(0., 1.) > fragmentation_prob:
-#             nummer = ParcelsRandom.random(0., 1.)
-#             plim3 = 128/N_total
-#             plim2 = plim3 + 32/N_total 
-#             plim1 = plim2 + 8/N_total 
-#             plim0 = plim1 + 2/N_total
-            
-#             if nummer <= plim3:
-#                 frag_mode = 16
-            
-#             elif (plim3 < nummer) and (nummer <= plim2):
-#                 frag_mode = 8
-
-#             elif (plim2 < nummer) and (nummer <= plim1):
-#                 frag_mode = 4
-
-#             else:
-#                 frag_mode = 2
-
-#             particle.radius = particle.radius*frag_mode # division for reverse
-            
-#     else:
-#         particle.radius = particle.radius
-            
-
 def Fragmentation(particle, fieldset, time):
-    N_total = 42.5
+    N_total = 42.5 # total number of particles in fragmentation event
     
-    if particle.radius < 1e-3:
+    if particle.radius < 5e-4:
         
         # the dt is negative in the backward simulation, but normaly the 
         # exponet should be negative. 
@@ -223,36 +208,6 @@ def Fragmentation(particle, fieldset, time):
             
     else:
         particle.radius += 0
-        
-
-def SinkingVelocity(particle, fieldset, time):
-    """
-    Sinking velocity kernel based on Stokes law. 
-    This definition is equivalent to monroy 2017 but more convininet
-    because of how we define beta. 
-    """
-    
-    rho_p = particle.particle_density # Extract particle density
-    rho_f = particle.density # Extract fluid density
-    
-    beta = rho_p/rho_f # denitiy ratio
-    particle.beta = beta
-    
-    viscosity = 1.5e-6 # m2/s
-    
-    radius = particle.radius/2 # radius of the particle
- 
-    v_s = (beta - 1)*9.81*2*radius**2/(9*viscosity)
-    particle.v_s = v_s
-
-    if particle.depth < 10:
-        particle.depth += 0
-        
-    elif particle.depth > particle.seafloor:
-        particle.depth += 0
-        
-    else:
-        particle.depth = particle.depth + v_s*particle.dt
     
 
 def periodicBC(particle, fieldset, time):
