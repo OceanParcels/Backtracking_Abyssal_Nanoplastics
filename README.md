@@ -1,9 +1,6 @@
-# 3DModelling_SouthAtlantic
-Claudio's next project
+# Backtracking cape basin nanoplatics.This repository has the code to run the simulations for the article soon to be submitted about backtracking nanoplastics in the water found in the South Atlantic, at 5170m bellow sea, in the Cape Basin (local seafloor at 5181m).
 
-To do:
-- Add vertical diffusion with K_z fileds in MOi
-- Bigger particle. Efolding timescale smaller
-- Take all depth and reduce domain. Test with extreme values.
-- Fix axis animations
-- Defragmentation plot in log scale
+To do: 
+- [ ] Finish draft.
+- [ ] Free slip bottom boundary.
+- [ ] Molecular diffusion value.
