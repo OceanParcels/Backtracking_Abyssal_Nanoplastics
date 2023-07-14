@@ -1,5 +1,9 @@
 """
-python3 backtrack_from_sampling_locations.py frag_ timescale
+To run do:
+      python3 backtrack_from_sampling_locations.py _frag_timescale_ _Frag_on_
+
+frag_timescale: a number
+Frag_on: True or False
 """
 # %%
 from glob import glob
@@ -20,10 +24,12 @@ import xarray as xr
 ###############################################################################
 
 # Control Panel for Kernels
-Test_run = False
+Test_run = True
+frag_timescale = int(sys.argv[1])
+Frag_on = sys.argv[2]
 
 # Initial conditions
-initial_depth = 5050 #This gets corrected by runinng kernel Initialize_particle_depth at dt=0
+initial_depth = 5170 #This gets corrected by runinng kernel Initialize_particle_depth at dt=0
 lon_sample = 6.287
 lat_sample = -32.171
 start_time = datetime.strptime('2019-01-20 12:00:00', '%Y-%m-%d %H:%M:%S')
@@ -38,7 +44,6 @@ data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
 if Test_run:
     # Number of particles and simulation time
     distance_from_seafloor = 50
-    frag_timescale = 3
     n_points = 100
     sim_time = 12  # days backwards
     output_path = '/storage/shared/oceanparcels/output_data/' + \
@@ -50,7 +55,6 @@ if Test_run:
 else:
     # Number of particles and simulation time
     distance_from_seafloor = 50 #m
-    frag_timescale = int(sys.argv[1])
     n_points = 10000
     sim_time = 4484
     # From 11 October 2006 to and including 20 January 2019 (forward).
@@ -166,7 +170,16 @@ bathy = xr.load_dataset(bathy_file)
 fieldset.add_field(Field('bathymetry', bathy['Bathymetry'].values,
                          lon=bathy['nav_lon'].values,
                          lat=bathy['nav_lat'].values,
-                         mesh='spherical'))
+                         mesh='spherical', interp_method="nearest"))
+
+
+
+zdepth_file = '/nethome/6525954/depth_zgrid_ORCA12_V3.3.nc' 
+zdepth = xr.load_dataset(zdepth_file)
+fieldset.add_field(Field('depth_zgrid', zdepth['depth_zgrid'].values,
+                    lon=zdepth['nav_lon'].values,
+                    lat=zdepth['nav_lat'].values,
+                    mesh='spherical', interp_method="nearest"))
 
 
 coastal_file = '/nethome/6525954/coastal_distance_ORCA12_V3.3.nc' 
@@ -176,7 +189,8 @@ fieldset.add_field(Field('Distance', coastal['dis_var'].values,
                     lat=coastal['lat'].values,
                     mesh='spherical'))
 
-K_h = 1.5e-6 # m^2/s. molecular diffusion. 
+# stokes_einstein eq. T= 4degC, and R =1e-8 m
+K_h = 1.56e-6 # m^2/s. molecular diffusion. 
 
 fieldset.add_field(Field('Kh_zonal', np.zeros_like(bathy['Bathymetry'].values) + K_h,
                          lon=bathy['nav_lon'].values,
@@ -203,7 +217,7 @@ lat_cluster = np.array(lat_cluster)
 
 depth_cluster = np.ones(n_points)*initial_depth  # meters
 date_cluster = [start_time]*n_points
-initial_radius = np.zeros_like(lon_cluster) + np.random.uniform(1e-9, 5e-7, n_points)
+initial_radius = np.zeros_like(lon_cluster) + np.random.uniform(5e-9, 5e-7, n_points)
 initial_densities = np.zeros_like(lon_cluster) + initial_particle_density
 
 pset = ParticleSet.from_list(fieldset=fieldset, pclass=kernels_simple.PlasticParticle,
@@ -218,8 +232,8 @@ pset = ParticleSet.from_list(fieldset=fieldset, pclass=kernels_simple.PlasticPar
 # %%Kernels #
 ###############################################################################
 # Sampling first timestep
-intial_depth = pset.Kernel(kernels_simple.Initialize_particle_depth)
-pset.execute(intial_depth, dt=0)
+# intial_depth = pset.Kernel(kernels_simple.Initialize_particle_depth)
+# pset.execute(intial_depth, dt=0)
 sample_kernel = pset.Kernel(kernels_simple.SampleField)
 pset.execute(sample_kernel, dt=0)
 pset.execute(pset.Kernel(PolyTEOS10_bsq), dt=0)
@@ -232,11 +246,14 @@ kernels += pset.Kernel(kernels_simple.AdvectionRK4_3D)
 kernels += sinking_kernel
 kernels += pset.Kernel(kernels_simple.VerticalRandomWalk)
 kernels += pset.Kernel(kernels_simple.BrownianMotion2D)
-kernels += pset.Kernel(kernels_simple.Fragmentation)
+
+if Frag_on == 'True':
+      print('Fragmentation is on')
+      kernels += pset.Kernel(kernels_simple.Fragmentation)
+
 kernels += pset.Kernel(kernels_simple.periodicBC)
 kernels += pset.Kernel(kernels_simple.reflectiveBC)
 kernels += pset.Kernel(kernels_simple.At_Surface)
-kernels += pset.Kernel(kernels_simple.At_Seafloor)
 
 print('Kernels loaded')
 
