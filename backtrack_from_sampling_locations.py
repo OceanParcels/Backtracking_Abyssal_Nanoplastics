@@ -24,7 +24,7 @@ import xarray as xr
 ###############################################################################
 
 # Control Panel for Kernels
-Test_run = True
+Test_run = False
 frag_timescale = int(sys.argv[1])
 Frag_on = sys.argv[2]
 
