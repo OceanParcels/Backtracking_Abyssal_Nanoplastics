@@ -24,12 +24,12 @@ import xarray as xr
 ###############################################################################
 
 # Control Panel for Kernels
-Test_run = False
+Test_run = True
 frag_timescale = int(sys.argv[1])
 Frag_on = sys.argv[2]
 
 # Initial conditions
-initial_depth = 5170 #This gets corrected by runinng kernel Initialize_particle_depth at dt=0
+initial_depth = 5000 #This gets corrected by runinng kernel Initialize_particle_depth at dt=0
 lon_sample = 6.287
 lat_sample = -32.171
 start_time = datetime.strptime('2019-01-20 12:00:00', '%Y-%m-%d %H:%M:%S')
@@ -45,11 +45,13 @@ if Test_run:
     # Number of particles and simulation time
     distance_from_seafloor = 50
     n_points = 100
-    sim_time = 12  # days backwards
+    sim_time = 65  # days backwards
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-                    f'data_Claudio/tests/HC13_5100_test_frag3.zarr'
+                    f'data_Claudio/tests/HC13_5000_65_neg.zarr'
     
-    wfiles = sorted(glob(data_path+'psy4v3r1-daily_W_2019-01-*.nc'))
+    wfiles = sorted(glob(data_path+'psy4v3r1-daily_W_2018-11-*.nc'))
+    wfiles += sorted(glob(data_path+'psy4v3r1-daily_W_2018-12-*.nc'))
+    wfiles += sorted(glob(data_path+'psy4v3r1-daily_W_2019-01-*.nc'))
     chunking_express = 12
     
 else:
@@ -209,7 +211,7 @@ fieldset.add_constant('distance_from_seafloor', distance_from_seafloor)
 # %%Particle Set #
 ###############################################################################
 
-np.random.seed(0)
+np.random.seed(42)
 lon_cluster = [lon_sample]*n_points + np.random.normal(loc=0, scale=0.01, size=n_points)
 lat_cluster = [lat_sample]*n_points + np.random.normal(loc=0, scale=0.01, size=n_points)
 lon_cluster = np.array(lon_cluster) 

@@ -141,7 +141,8 @@ def VerticalRandomWalk(particle, fieldset, time):
     kz_dz = fieldset.Kz[time, particle.depth + d_z,
                               particle.lat, particle.lon]
     
-    Kz_deterministic = (k_z + kz_dz)/d_z * math.fabs(particle.dt) # gradient of Kz in z direction
+    ## ATTENTION: Ichanged the sign of dt to negative to make it work with the advection kernel
+    Kz_deterministic = (k_z + kz_dz)/d_z * particle.dt #math.fabs(particle.dt) # gradient of Kz in z direction
     
     Kz_random = ParcelsRandom.uniform(-1., 1.) * math.sqrt(math.fabs(particle.dt) * 6 * k_z)
     
@@ -153,14 +154,14 @@ def VerticalRandomWalk(particle, fieldset, time):
     
     if particle.depth > particle.bottom:
         # if particle gets below seafloor diffusion not added
-        particle.depth += 0
+        particle.depth += Kz_movement
         
     elif particle.depth < 10:
         # if particle gets above 10m diffusion not added
         particle.depth += 0
         
     else:
-        particle.depth = particle.depth + vertical_diffusion
+        particle.depth += vertical_diffusion
         
         
 def BrownianMotion2D(particle, fieldset, time):
