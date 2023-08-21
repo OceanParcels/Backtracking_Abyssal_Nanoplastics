@@ -17,11 +17,19 @@ class PlasticParticle(JITParticle):
     mld = Variable('mld', dtype=np.float32, initial=0)
     seafloor = Variable('seafloor', dtype=np.float32, initial=0)
     density = Variable('density', dtype=np.float32, initial=0)
-    v_s = Variable('v_s', dtype=np.float32, initial=0)
+    
+    # dynamic variables
     u = Variable('u', dtype=np.float32, initial=0)
     v = Variable('v', dtype=np.float32, initial=0)
     w = Variable('w', dtype=np.float32, initial=0)
-    w_k = Variable('w_k', dtype=np.float32, initial=0)
+    v_s = Variable('v_s', dtype=np.float32, initial=0)
+    
+    # vertical displacement variables 
+    z_vs = Variable('z_vs', dtype=np.float32, initial=0)
+    z_kz = Variable('z_Kz', dtype=np.float32, initial=0)
+    z_kz_rand = Variable('z_Kz_rand', dtype=np.float32, initial=0)
+    z_w = Variable('z_w', dtype=np.float32, initial=0)
+    
     radius = Variable('radius', dtype=np.float64, initial=0)
     particle_density = Variable('particle_density', dtype=np.float32,
                             initial=0)
@@ -95,7 +103,10 @@ def AdvectionRK4_3D(particle, fieldset, time):
     lat3 = particle.lat + v3*particle.dt
     dep3 = particle.depth + w3*particle.dt
     (u4, v4, w4) = fieldset.UVW[time + particle.dt, dep3, lat3, lon3, particle]
-        
+    
+    delta_z = (w1 + 2*w2 + 2*w3 + w4) / 6. * particle.dt
+    particle.z_w = delta_z
+    
     if particle.depth < 10:
         particle.lon += 0
         particle.lat += 0
@@ -104,7 +115,7 @@ def AdvectionRK4_3D(particle, fieldset, time):
     else:
         particle.lon += (u1 + 2*u2 + 2*u3 + u4) / 6. * particle.dt
         particle.lat += (v1 + 2*v2 + 2*v3 + v4) / 6. * particle.dt
-        particle.depth += (w1 + 2*w2 + 2*w3 + w4) / 6. * particle.dt
+        particle.depth += delta_z
 
 
 def SinkingVelocity(particle, fieldset, time):
@@ -141,14 +152,15 @@ def VerticalRandomWalk(particle, fieldset, time):
     kz_dz = fieldset.Kz[time, particle.depth + d_z,
                               particle.lat, particle.lon]
     
-    ## ATTENTION: Ichanged the sign of dt to negative to make it work with the advection kernel
-    Kz_deterministic = (k_z + kz_dz)/d_z * particle.dt #math.fabs(particle.dt) # gradient of Kz in z direction
+    Kz_deterministic = (k_z + kz_dz)/d_z * math.fabs(particle.dt) # gradient of Kz in z direction
     
     Kz_random = ParcelsRandom.uniform(-1., 1.) * math.sqrt(math.fabs(particle.dt) * 6 * k_z)
     
     Kz_movement = particle.v_s*particle.dt # dt < 0!
     
-    particle.w_k = vertical_diffusion/math.fabs(particle.dt) # m/s for comparison with w
+    particle.z_kz = Kz_deterministic
+    particle.z_kz_random = Kz_random
+    particle.z_vs = Kz_movement
     
     vertical_diffusion = Kz_deterministic + Kz_random + Kz_movement
     

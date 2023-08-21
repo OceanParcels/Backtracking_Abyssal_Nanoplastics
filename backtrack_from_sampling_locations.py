@@ -47,7 +47,7 @@ if Test_run:
     n_points = 100
     sim_time = 65  # days backwards
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-                    f'data_Claudio/tests/HC13_5000_65_neg.zarr'
+                    f'data_Claudio/tests/HC13_5000_test_positive.zarr'
     
     wfiles = sorted(glob(data_path+'psy4v3r1-daily_W_2018-11-*.nc'))
     wfiles += sorted(glob(data_path+'psy4v3r1-daily_W_2018-12-*.nc'))
