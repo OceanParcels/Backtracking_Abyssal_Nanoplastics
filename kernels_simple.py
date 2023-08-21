@@ -25,11 +25,8 @@ class PlasticParticle(JITParticle):
     v_s = Variable('v_s', dtype=np.float32, initial=0)
     
     # vertical displacement variables 
-    z_vs = Variable('z_vs', dtype=np.float32, initial=0)
-    z_kz = Variable('z_Kz', dtype=np.float32, initial=0)
-    z_kz_rand = Variable('z_Kz_rand', dtype=np.float32, initial=0)
-    z_w = Variable('z_w', dtype=np.float32, initial=0)
-    
+    z_kz = Variable('z_kz', dtype=np.float32, initial=0)
+
     radius = Variable('radius', dtype=np.float64, initial=0)
     particle_density = Variable('particle_density', dtype=np.float32,
                             initial=0)
@@ -104,9 +101,6 @@ def AdvectionRK4_3D(particle, fieldset, time):
     dep3 = particle.depth + w3*particle.dt
     (u4, v4, w4) = fieldset.UVW[time + particle.dt, dep3, lat3, lon3, particle]
     
-    delta_z = (w1 + 2*w2 + 2*w3 + w4) / 6. * particle.dt
-    particle.z_w = delta_z
-    
     if particle.depth < 10:
         particle.lon += 0
         particle.lat += 0
@@ -115,7 +109,7 @@ def AdvectionRK4_3D(particle, fieldset, time):
     else:
         particle.lon += (u1 + 2*u2 + 2*u3 + u4) / 6. * particle.dt
         particle.lat += (v1 + 2*v2 + 2*v3 + v4) / 6. * particle.dt
-        particle.depth += delta_z
+        particle.depth += (w1 + 2*w2 + 2*w3 + w4) / 6. * particle.dt
 
 
 def SinkingVelocity(particle, fieldset, time):
@@ -152,15 +146,14 @@ def VerticalRandomWalk(particle, fieldset, time):
     kz_dz = fieldset.Kz[time, particle.depth + d_z,
                               particle.lat, particle.lon]
     
-    Kz_deterministic = (k_z + kz_dz)/d_z * math.fabs(particle.dt) # gradient of Kz in z direction
+    
+    Kz_deterministic = (kz_dz - k_z)/d_z * math.fabs(particle.dt) # gradient of Kz in z direction
     
     Kz_random = ParcelsRandom.uniform(-1., 1.) * math.sqrt(math.fabs(particle.dt) * 6 * k_z)
     
     Kz_movement = particle.v_s*particle.dt # dt < 0!
     
-    particle.z_kz = Kz_deterministic
-    particle.z_kz_random = Kz_random
-    particle.z_vs = Kz_movement
+    particle.z_kz = Kz_deterministic + Kz_random
     
     vertical_diffusion = Kz_deterministic + Kz_random + Kz_movement
     
@@ -208,44 +201,44 @@ def BrownianMotion2D(particle, fieldset, time):
         particle.lat += by * dWy
 
 
-def Fragmentation(particle, fieldset, time):
-    """
-    Kernel for de-fragmentation of particles.
-    If random number is larger than the probability of fragmentation
-    there is a fragmentation event and the particle radius changes
-    according to the fragmentation distribution
-    """
-    N_total = 42.5 # total number of particles in fragmentation event
+# def Fragmentation(particle, fieldset, time):
+#     """
+#     Kernel for de-fragmentation of particles.
+#     If random number is larger than the probability of fragmentation
+#     there is a fragmentation event and the particle radius changes
+#     according to the fragmentation distribution
+#     """
+#     N_total = 42.5 # total number of particles in fragmentation event
     
-    if particle.radius < 5e-4:
+#     if particle.radius < 5e-4:
         
-        # the dt is negative in the backward simulation, but normaly the 
-        # exponet should be negative. 
-        fragmentation_prob = math.exp(particle.dt/(fieldset.fragmentation_timescale*86400.))
+#         # the dt is negative in the backward simulation, but normaly the 
+#         # exponet should be negative. 
+#         fragmentation_prob = math.exp(particle.dt/(fieldset.fragmentation_timescale*86400.))
 
       
-        if ParcelsRandom.random(0., 1.) > fragmentation_prob:
-            nummer = ParcelsRandom.random(0., 1.)
+#         if ParcelsRandom.random(0., 1.) > fragmentation_prob:
+#             nummer = ParcelsRandom.random(0., 1.)
 
-            plim3 = 32/N_total
-            plim2 = plim3 + 8/N_total 
-            plim1 = plim2 + 2/N_total
-            plim0 = plim1 + 0.5/N_total
+#             plim3 = 32/N_total
+#             plim2 = plim3 + 8/N_total 
+#             plim1 = plim2 + 2/N_total
+#             plim0 = plim1 + 0.5/N_total
             
-            if nummer <= plim3:
-                particle.radius = 8*particle.radius
+#             if nummer <= plim3:
+#                 particle.radius = 8*particle.radius
             
-            elif (plim3 < nummer) and (nummer <= plim2):
-                particle.radius = 4*particle.radius
+#             elif (plim3 < nummer) and (nummer <= plim2):
+#                 particle.radius = 4*particle.radius
 
-            elif (plim2 < nummer) and (nummer <= plim1):
-                particle.radius = 2*particle.radius
+#             elif (plim2 < nummer) and (nummer <= plim1):
+#                 particle.radius = 2*particle.radius
 
-            else:
-                particle.radius = 1.259921*particle.radius
+#             else:
+#                 particle.radius = 1.259921*particle.radius
             
-    else:
-        particle.radius += 0
+#     else:
+#         particle.radius += 0
     
 
 def periodicBC(particle, fieldset, time):
