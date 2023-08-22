@@ -17,6 +17,8 @@ class PlasticParticle(JITParticle):
     mld = Variable('mld', dtype=np.float32, initial=0)
     seafloor = Variable('seafloor', dtype=np.float32, initial=0)
     density = Variable('density', dtype=np.float32, initial=0)
+    kz = Variable('kz', dtype=np.float32, initial=0)
+    kzdz = Variable('kzdz', dtype=np.float32, initial=0)
     
     # dynamic variables
     u = Variable('u', dtype=np.float32, initial=0)
@@ -37,6 +39,13 @@ class PlasticParticle(JITParticle):
     
     bottom = Variable('bottom', dtype=np.float32, initial=0)
     diffusion = Variable('diffusion', dtype=np.float32, initial=0)
+    
+    # amount of times particle touches the bottom
+    floored = Variable('floored', dtype=np.float32, initial=0)
+    
+    #number of times particles fragments
+    frag_events = Variable('frag_events', dtype=np.float32, initial=0)
+    
 
 def delete_particle(particle, fieldset, time):
     particle.delete()
@@ -142,12 +151,13 @@ def VerticalRandomWalk(particle, fieldset, time):
     d_z = 1 #metters. delta z
     k_z = fieldset.Kz[time, particle.depth,
                               particle.lat, particle.lon]
-    
-    kz_dz = fieldset.Kz[time, particle.depth + d_z,
+    particle.kz = k_z
+     
+    kz_dz = fieldset.Kz[time, particle.depth - d_z,
                               particle.lat, particle.lon]
+    particle.kzdz = kz_dz
     
-    
-    Kz_deterministic = (kz_dz - k_z)/d_z * math.fabs(particle.dt) # gradient of Kz in z direction
+    Kz_deterministic = (k_z - kz_dz)/d_z * particle.dt # math.fabs(particle.dt) # gradient of Kz in z direction
     
     Kz_random = ParcelsRandom.uniform(-1., 1.) * math.sqrt(math.fabs(particle.dt) * 6 * k_z)
     
@@ -201,44 +211,45 @@ def BrownianMotion2D(particle, fieldset, time):
         particle.lat += by * dWy
 
 
-# def Fragmentation(particle, fieldset, time):
-#     """
-#     Kernel for de-fragmentation of particles.
-#     If random number is larger than the probability of fragmentation
-#     there is a fragmentation event and the particle radius changes
-#     according to the fragmentation distribution
-#     """
-#     N_total = 42.5 # total number of particles in fragmentation event
+def Fragmentation(particle, fieldset, time):
+    """
+    Kernel for de-fragmentation of particles.
+    If random number is larger than the probability of fragmentation
+    there is a fragmentation event and the particle radius changes
+    according to the fragmentation distribution
+    """
+    N_total = 42.5 # total number of particles in fragmentation event
     
-#     if particle.radius < 5e-4:
+    if particle.radius < 5e-4:
         
-#         # the dt is negative in the backward simulation, but normaly the 
-#         # exponet should be negative. 
-#         fragmentation_prob = math.exp(particle.dt/(fieldset.fragmentation_timescale*86400.))
+        # the dt is negative in the backward simulation, but normaly the 
+        # exponet should be negative. 
+        fragmentation_prob = math.exp(particle.dt/(fieldset.fragmentation_timescale*86400.))
 
       
-#         if ParcelsRandom.random(0., 1.) > fragmentation_prob:
-#             nummer = ParcelsRandom.random(0., 1.)
+        if ParcelsRandom.random(0., 1.) > fragmentation_prob:
+            particle.frag_events += 1.
+            nummer = ParcelsRandom.random(0., 1.)
 
-#             plim3 = 32/N_total
-#             plim2 = plim3 + 8/N_total 
-#             plim1 = plim2 + 2/N_total
-#             plim0 = plim1 + 0.5/N_total
+            plim3 = 32/N_total
+            plim2 = plim3 + 8/N_total 
+            plim1 = plim2 + 2/N_total
+            plim0 = plim1 + 0.5/N_total
             
-#             if nummer <= plim3:
-#                 particle.radius = 8*particle.radius
+            if nummer <= plim3:
+                particle.radius = 8*particle.radius
             
-#             elif (plim3 < nummer) and (nummer <= plim2):
-#                 particle.radius = 4*particle.radius
+            elif (plim3 < nummer) and (nummer <= plim2):
+                particle.radius = 4*particle.radius
 
-#             elif (plim2 < nummer) and (nummer <= plim1):
-#                 particle.radius = 2*particle.radius
+            elif (plim2 < nummer) and (nummer <= plim1):
+                particle.radius = 2*particle.radius
 
-#             else:
-#                 particle.radius = 1.259921*particle.radius
+            else:
+                particle.radius = 1.259921*particle.radius
             
-#     else:
-#         particle.radius += 0
+    else:
+        particle.radius += 0
     
 
 def periodicBC(particle, fieldset, time):
@@ -263,6 +274,18 @@ def reflectiveBC(particle, fieldset, time):
     else:
         particle.depth += 0
 
+
+def reflectiveBC_bottom(particle, fieldset, time):
+    """
+    Kernel for reflective boundary conditions at the bottom to avoid
+    particles getting stuck in the bottom.
+    """
+    if particle.depth > particle.bottom:
+        particle.depth = particle.bottom - 10.
+        particle.floored += 1
+        
+    else:
+        particle.depth += 0
         
 def At_Surface(particle, fieldset, time):
     """
