@@ -24,7 +24,7 @@ import xarray as xr
 ###############################################################################
 
 # Control Panel for Kernels
-Test_run = True
+Test_run = False
 frag_timescale = int(sys.argv[1])
 Frag_on = sys.argv[2]
 
@@ -47,7 +47,7 @@ if Test_run:
     n_points = 100
     sim_time = 65  # days backwards
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-                    f'data_Claudio/tests/HC13_5000_test_negative7.zarr'
+                    f'data_Claudio/tests/HC13_5000_65_noKz2.zarr'
     
     wfiles = sorted(glob(data_path+'psy4v3r1-daily_W_2018-11-*.nc'))
     wfiles += sorted(glob(data_path+'psy4v3r1-daily_W_2018-12-*.nc'))
@@ -56,7 +56,7 @@ if Test_run:
     
 else:
     # Number of particles and simulation time
-    distance_from_seafloor = 50 #m
+    distance_from_seafloor = 50 #m -- No longer in use
     n_points = 10000
     sim_time = 4484
     # From 11 October 2006 to and including 20 January 2019 (forward).
@@ -159,8 +159,8 @@ dimensions = {'U': {'lon': 'glamf',
 ###############################################################################
 
 # indices = {'lat': range(0, 1700), 'lon': range(200, 4321)}
-# indices = {'lat': range(0, 1700), 'lon': range(2000, 4321)}
-indices = {'lat': range(0, 1700)}
+# indices = {'lat': range(0, 1700), 'lon': range(2000, 4321)} # whole domain for frag timescale < 400
+indices = {'lat': range(0, 1700)} # whole domain for frag timescale >= 400
 
 fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
                               allow_time_extrapolation=False,
@@ -234,8 +234,6 @@ pset = ParticleSet.from_list(fieldset=fieldset, pclass=kernels_simple.PlasticPar
 # %%Kernels #
 ###############################################################################
 # Sampling first timestep
-# intial_depth = pset.Kernel(kernels_simple.Initialize_particle_depth)
-# pset.execute(intial_depth, dt=0)
 sample_kernel = pset.Kernel(kernels_simple.SampleField)
 pset.execute(sample_kernel, dt=0)
 pset.execute(pset.Kernel(PolyTEOS10_bsq), dt=0)

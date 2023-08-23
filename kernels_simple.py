@@ -157,7 +157,7 @@ def VerticalRandomWalk(particle, fieldset, time):
                               particle.lat, particle.lon]
     particle.kzdz = kz_dz
     
-    Kz_deterministic = (k_z - kz_dz)/d_z * particle.dt # math.fabs(particle.dt) # gradient of Kz in z direction
+    Kz_deterministic = (k_z - kz_dz)/d_z * math.fabs(particle.dt) # gradient of Kz in z direction
     
     Kz_random = ParcelsRandom.uniform(-1., 1.) * math.sqrt(math.fabs(particle.dt) * 6 * k_z)
     
