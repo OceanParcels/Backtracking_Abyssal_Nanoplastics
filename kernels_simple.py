@@ -14,11 +14,9 @@ class PlasticParticle(JITParticle):
                                 initial=0)
     abs_salinity = Variable('abs_salinity', dtype=np.float32,
                             initial=0)
-    mld = Variable('mld', dtype=np.float32, initial=0)
-    seafloor = Variable('seafloor', dtype=np.float32, initial=0)
+
     density = Variable('density', dtype=np.float32, initial=0)
     kz = Variable('kz', dtype=np.float32, initial=0)
-    kzdz = Variable('kzdz', dtype=np.float32, initial=0)
     
     # dynamic variables
     u = Variable('u', dtype=np.float32, initial=0)
@@ -32,13 +30,10 @@ class PlasticParticle(JITParticle):
     radius = Variable('radius', dtype=np.float64, initial=0)
     particle_density = Variable('particle_density', dtype=np.float32,
                             initial=0)
-    beta = Variable('beta',  dtype=np.float32, initial=0)
     
     distance = Variable('distance', dtype= np.float32, initial=0)
-    surface = Variable('surface', dtype=np.float32, initial=0)
     
     bottom = Variable('bottom', dtype=np.float32, initial=0)
-    diffusion = Variable('diffusion', dtype=np.float32, initial=0)
     
     # amount of times particle touches the bottom
     floored = Variable('floored', dtype=np.float32, initial=0)
@@ -61,31 +56,11 @@ def SampleField(particle, fieldset, time):
                                                           particle.lon]
     particle.abs_salinity = fieldset.abs_salinity[time, particle.depth,
                                                   particle.lat, particle.lon]
-    particle.mld = fieldset.mld[time, particle.depth,
-                                particle.lat, particle.lon]
-    particle.seafloor = fieldset.bathymetry[time, particle.depth,
-                                   particle.lat, particle.lon]
     particle.distance = fieldset.Distance[time, particle.depth, 
                                           particle.lat, particle.lon]
     
     particle.bottom = fieldset.depth_zgrid[time, particle.depth, 
                                           particle.lat, particle.lon]
-
-def Initialize_particle_depth(particle, fieldset, time):
-    """
-    Due to the the interpolation of the bathymetry field to determine
-    the particle position from the seafloor. The seafloor depth varies
-    from particle to particle. Therefore, the particle depth is set to
-    the seafloor depth at the beginning of the simulation plus 10 m.
-    """
-    floor = fieldset.depth_zgrid[time, particle.depth,
-                                   particle.lat, particle.lon]
-    
-    if floor < particle.depth:
-        particle.depth = floor - fieldset.distance_from_seafloor
-        
-    else:
-        particle.depth += 0
 
 
 def AdvectionRK4_3D(particle, fieldset, time):
@@ -94,7 +69,6 @@ def AdvectionRK4_3D(particle, fieldset, time):
     including vertical velocity.
     Function needs to be converted to Kernel object before execution
     """
-    
     (u1, v1, w1) = fieldset.UVW[time, particle.depth, particle.lat, particle.lon]
     particle.u, particle.v, particle.w = u1, v1, w1
     lon1 = particle.lon + u1*.5*particle.dt
@@ -132,8 +106,7 @@ def SinkingVelocity(particle, fieldset, time):
     rho_f = particle.density # Extract fluid density
     
     beta = rho_p/rho_f # denitiy ratio
-    particle.beta = beta
-    
+
     viscosity = 1.5e-6 # m2/s kinematic viscosity
  
     v_s = (beta - 1)*9.81*2*particle.radius**2/(9*viscosity)
@@ -155,7 +128,7 @@ def VerticalRandomWalk(particle, fieldset, time):
      
     kz_dz = fieldset.Kz[time, particle.depth - d_z,
                               particle.lat, particle.lon]
-    particle.kzdz = kz_dz
+
     
     Kz_deterministic = (k_z - kz_dz)/d_z * math.fabs(particle.dt) # gradient of Kz in z direction
     
@@ -189,9 +162,6 @@ def BrownianMotion2D(particle, fieldset, time):
     
     dWx = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
     dWy = ParcelsRandom.normalvariate(0, math.sqrt(math.fabs(particle.dt)))
-
-    particle.diffusion = fieldset.Kh_meridional[time, particle.depth, 
-                                          particle.lat, particle.lon]
     
     bx = math.sqrt(2 * fieldset.Kh_zonal[time, particle.depth, 
                                           particle.lat, particle.lon])
@@ -220,7 +190,7 @@ def Fragmentation(particle, fieldset, time):
     """
     N_total = 42.5 # total number of particles in fragmentation event
     
-    if particle.radius < 5e-4:
+    if particle.radius < 1e-4:
         
         # the dt is negative in the backward simulation, but normaly the 
         # exponet should be negative. 
@@ -286,14 +256,4 @@ def reflectiveBC_bottom(particle, fieldset, time):
         
     else:
         particle.depth += 0
-        
-def At_Surface(particle, fieldset, time):
-    """
-    Kernel to check if particle is at the surface.
-    """
-    if particle.depth < 10:
-        particle.surface = 1.
-        
-    else:
-        particle.surface = 0.
 

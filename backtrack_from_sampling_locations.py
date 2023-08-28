@@ -34,42 +34,57 @@ lon_sample = 6.287
 lat_sample = -32.171
 start_time = datetime.strptime('2019-01-20 12:00:00', '%Y-%m-%d %H:%M:%S')
 
+
+
 # Particle Size and Density
 initial_particle_density = 1380  # PET & PVC kg/m3
 
-data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
 ###############################################################################
 # %%
 ###############################################################################
+data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
+wfiles = sorted(glob(data_path + f'psy4v3r1-daily_W_*.nc'))
+
 if Test_run:
     # Number of particles and simulation time
-    distance_from_seafloor = 50
     n_points = 100
-    sim_time = 65  # days backwards
+    sim_time = 60  # days backwards
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-                    f'data_Claudio/tests/HC13_5000_65_noKz2.zarr'
+                    f'data_Claudio/tests/optimum.zarr'
     
     wfiles = sorted(glob(data_path+'psy4v3r1-daily_W_2018-11-*.nc'))
     wfiles += sorted(glob(data_path+'psy4v3r1-daily_W_2018-12-*.nc'))
     wfiles += sorted(glob(data_path+'psy4v3r1-daily_W_2019-01-*.nc'))
     chunking_express = 12
+    end_time = datetime.strptime('2018-11-20 12:00:00', '%Y-%m-%d %H:%M:%S')
     
 else:
     # Number of particles and simulation time
-    distance_from_seafloor = 50 #m -- No longer in use
-    n_points = 10000
+    n_points = 8192 #2^13
     sim_time = 4484
     # From 11 October 2006 to and including 20 January 2019 (forward).
     # Result: 4485 days or 12 years, 3 months, 10 days including the end date.
+    end_time = datetime.strptime('2006-10-11 12:00:00', '%Y-%m-%d %H:%M:%S')
     
     file_range = range(6, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/hc13/hc13_{frag_timescale}.zarr'
+        f'data_Claudio/hc13_2/hc13_{frag_timescale}.zarr'
     chunking_express = 500
 
-    wfiles = []
-    for i in tqdm(file_range):
-        wfiles = wfiles + sorted(glob(data_path + f'psy4v3r1-daily_W_20{i:02d}*.nc'))
+# Loading the only the files that we need.
+# indexes are inverted because the start date is in the future.
+# it's a backwards in time simulation
+start_index = 0 
+end_index = 0
+
+for file in wfiles:
+    if file[-13:-3] == start_time.strftime('%Y-%m-%d'):
+        end_index = wfiles.index(file)
+        
+    if file[-13:-3] == end_time.strftime('%Y-%m-%d'):
+        start_index = wfiles.index(file)
+    
+wfiles = wfiles[start_index:end_index+1]
 
 ###############################################################################
 # %%Reading files #
@@ -78,14 +93,11 @@ vfiles = [f.replace('_W_', '_V_') for f in wfiles]
 ufiles = [f.replace('_W_', '_U_') for f in wfiles]
 tfiles = [f.replace('_W_', '_T_') for f in wfiles]
 sfiles = [f.replace('_W_', '_S_') for f in wfiles]
-twoDfiles = [f.replace('_W_', '_2D_') for f in wfiles]
 KZfiles = [f.replace('_W_', '_KZ_') for f in wfiles]
 
 
 mesh_mask = '/storage/shared/oceanparcels/input_data/MOi/' + \
             'domain_ORCA0083-N006/coordinates.nc'
-bathy_file = '/storage/shared/oceanparcels/input_data/MOi/' + \
-    'domain_ORCA0083-N006/bathymetry_ORCA12_V3.3.nc'
 
 filenames = {'U': {'lon': mesh_mask,
                    'lat': mesh_mask,
@@ -107,10 +119,6 @@ filenames = {'U': {'lon': mesh_mask,
                              'lat': mesh_mask,
                              'depth': wfiles[0],
                              'data': sfiles},
-            'mld': {'lon': mesh_mask,
-                    'lat': mesh_mask,
-                    'depth': twoDfiles[0],
-                    'data': twoDfiles},
             'Kz': {'lon': mesh_mask,
                    'lat': mesh_mask,
                    'depth': wfiles[0],
@@ -121,7 +129,6 @@ variables = {'U': 'vozocrtx',
              'W': 'vovecrtz',
              'cons_temperature': 'votemper',
              'abs_salinity': 'vosaline',
-             'mld': 'somxlavt',
              'Kz': 'votkeavt'}
 
 dimensions = {'U': {'lon': 'glamf',
@@ -144,10 +151,6 @@ dimensions = {'U': {'lon': 'glamf',
                               'lat': 'gphif',
                               'depth': 'depthw',
                               'time': 'time_counter'},
-              'mld': {'lon': 'glamf',
-                            'lat': 'gphif',
-                            'depth': 'deptht',
-                            'time': 'time_counter'},
               'Kz': {'lon': 'glamf',
                     'lat': 'gphif',
                     'depth': 'depthw',
@@ -159,21 +162,13 @@ dimensions = {'U': {'lon': 'glamf',
 ###############################################################################
 
 # indices = {'lat': range(0, 1700), 'lon': range(200, 4321)}
-# indices = {'lat': range(0, 1700), 'lon': range(2000, 4321)} # whole domain for frag timescale < 400
-indices = {'lat': range(0, 1700)} # whole domain for frag timescale >= 400
+indices = {'lat': range(200, 1700), 'lon': range(2300, 4321)} # whole domain for frag timescale < 400
+# indices = {'lat': range(0, 1700)} # whole domain for frag timescale >= 400
 
 fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
                               allow_time_extrapolation=False,
                               indices=indices,
                               chunksize=False)
-
-
-bathy = xr.load_dataset(bathy_file)
-fieldset.add_field(Field('bathymetry', bathy['Bathymetry'].values,
-                         lon=bathy['nav_lon'].values,
-                         lat=bathy['nav_lat'].values,
-                         mesh='spherical', interp_method="nearest"))
-
 
 
 zdepth_file = '/nethome/6525954/depth_zgrid_ORCA12_V3.3.nc' 
@@ -194,18 +189,17 @@ fieldset.add_field(Field('Distance', coastal['dis_var'].values,
 # stokes_einstein eq. T= 4degC, and R =1e-8 m
 K_h = 1.56e-6 # m^2/s. molecular diffusion. 
 
-fieldset.add_field(Field('Kh_zonal', np.zeros_like(bathy['Bathymetry'].values) + K_h,
-                         lon=bathy['nav_lon'].values,
-                         lat=bathy['nav_lat'].values,
+fieldset.add_field(Field('Kh_zonal', np.zeros_like(zdepth['depth_zgrid'].values) + K_h,
+                         lon=zdepth['nav_lon'].values,
+                         lat=zdepth['nav_lat'].values,
                          mesh='spherical'))
 
-fieldset.add_field(Field('Kh_meridional', np.zeros_like(bathy['Bathymetry'].values) + K_h,
-                         lon=bathy['nav_lon'].values,
-                         lat=bathy['nav_lat'].values,
+fieldset.add_field(Field('Kh_meridional', np.zeros_like(zdepth['depth_zgrid'].values) + K_h,
+                         lon=zdepth['nav_lon'].values,
+                         lat=zdepth['nav_lat'].values,
                          mesh='spherical'))
 
 fieldset.add_constant('fragmentation_timescale', frag_timescale)
-fieldset.add_constant('distance_from_seafloor', distance_from_seafloor)
 
 ###############################################################################
 # %%Particle Set #
@@ -254,7 +248,6 @@ if Frag_on == 'True':
 kernels += pset.Kernel(kernels_simple.periodicBC)
 kernels += pset.Kernel(kernels_simple.reflectiveBC_bottom)
 kernels += pset.Kernel(kernels_simple.reflectiveBC)
-kernels += pset.Kernel(kernels_simple.At_Surface)
 
 print('Kernels loaded')
 
