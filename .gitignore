@@ -8,6 +8,7 @@ data/
 # C extensions
 *.so
 biblio/
+article_figs/
 # Distribution / packaging
 .Python
 build/

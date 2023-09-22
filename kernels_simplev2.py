@@ -136,7 +136,7 @@ def VerticalRandomWalk(particle, fieldset, time):
     
     Kz_movement = particle.v_s*particle.dt # dt < 0!
     
-    particle.z_kz = Kz_deterministic + Kz_random
+    particle.z_kz = 0 # Kz_deterministic + Kz_random
     
     vertical_diffusion = Kz_deterministic + Kz_random + Kz_movement
     
@@ -149,8 +149,8 @@ def VerticalRandomWalk(particle, fieldset, time):
         particle.depth += 0
         
     else:
-        particle.depth += vertical_diffusion
-        # particle.depth += Kz_movement
+        # particle.depth += vertical_diffusion
+        particle.depth += Kz_movement
         
         
 def BrownianMotion2D(particle, fieldset, time):

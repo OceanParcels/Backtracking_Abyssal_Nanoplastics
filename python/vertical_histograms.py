@@ -14,6 +14,8 @@ from tqdm import tqdm
 from datetime import datetime
 import draft_functions as funk
 
+run_for_loop = False
+
 # Define initial conditions
 initial_depth = -5000  # int(sys.argv[1])  # 5 # 60 # 5179
 lon_sample = 6.287  # 6.25
@@ -37,107 +39,105 @@ frag_into_NPs = {}
 extra = ''
 
 #%% Loop over simulations
-for ft in simulations:
-    print('Computing fragmentation timescale: ', ft)
-    sim_dict = {}
+if run_for_loop:
+    for ft in simulations:
+        print('Computing fragmentation timescale: ', ft)
+        sim_dict = {}
 
-    # Load the data from the simulation
-    local_path = f'/storage/shared/oceanparcels/output_data/data_Claudio/hc13_2/hc13_{ft}.zarr'
-    sim = xr.open_zarr(local_path)
-    nano = sim.where(sim.radius < 1e-6/2, drop=False)
-    
-    
-    # Find indices of the particles that are not NaN
-    aux = np.isnan(nano['radius'].values)
-    traj = nano.trajectory.values
-    index_NP = len(nano.obs) - 1 - np.sum(aux, axis=1)
-    sim_dict['particle_index'] = index_NP
-
-    # Get depth, latitude, and longitude of NPs
-    z = -nano['z'].values
-    sim_dict['depths'] = z[(traj, index_NP)]
-
-    latNP = nano['lat'].values
-    lonNP = nano['lon'].values
-
-    sim_dict['lat'] = latNP[(traj, index_NP)]
-    sim_dict['lon'] = lonNP[(traj, index_NP)]
-
-    # Compute displacement of NPs from a reference point (origin)
-    xy_pos = (lonNP[(traj, index_NP)], latNP[(traj, index_NP)])
-    sim_dict['displacement'] = funk.haversine(origin, xy_pos)
-
-    # Compute histograms of particle counts for each depth bin over time
-    zbins = len(depth_bins)-1
-    hist_counts = np.zeros((zbins, sim_time))
-    
-    if ft == 10: 
-        t_range = range(0, 1500, 1)
+        # Load the data from the simulation
+        local_path = f'/storage/shared/oceanparcels/output_data/data_Claudio/hc13_2/hc13_{ft}.zarr'
+        sim = xr.open_zarr(local_path)
+        nano = sim.where(sim.radius < 1e-6/2, drop=False)
         
-    else:
-        t_range = range(0, sim_time, 1)
-    
-    
-    for i, fr in enumerate(tqdm(t_range)):
-        x = np.histogram(-nano['z'][:, fr].dropna('trajectory'), bins=depth_bins,
-                         density=False)
-        hist_counts[:, i] = x[0]
+        # Find indices of the particles that are not NaN
+        aux = np.isnan(nano['radius'].values)
+        traj = nano.trajectory.values
+        index_NP = len(nano.obs) - 1 - np.sum(aux, axis=1)
+        
+        sim_dict['particle_index'] = index_NP
 
-    # Compute total number of particles in each time step
-    total_particles = np.sum(hist_counts, axis=0)
-    sim_dict['counts'] = total_particles
+        # Get depth, latitude, and longitude of NPs
+        z = -nano['z'].values
+        sim_dict['depths'] = z[(traj, index_NP)]
 
-    p_zt = np.ma.masked_equal(hist_counts, 0)/total_particles
-    # creat a rolling average of h_masked
+        latNP = nano['lat'].values
+        lonNP = nano['lon'].values
 
-    # h_masked.rolling(time=10, center=True, ).mean()
+        sim_dict['lat'] = latNP[(traj, index_NP)]
+        sim_dict['lon'] = lonNP[(traj, index_NP)]
+
+        # Compute displacement of NPs from a reference point (origin)
+        xy_pos = (lonNP[(traj, index_NP)], latNP[(traj, index_NP)])
+        sim_dict['displacement'] = funk.haversine(origin, xy_pos)
+
+        # Compute histograms of particle counts for each depth bin over time
+        zbins = len(depth_bins)-1
+        hist_counts = np.zeros((zbins, sim_time))
+        
+        if ft == 10: 
+            t_range = range(0, 1500, 1)
+            
+        else:
+            t_range = range(0, sim_time, 1)
+        
+        
+        for i, fr in enumerate(tqdm(t_range)):
+            x = np.histogram(-nano['z'][:, fr].dropna('trajectory'), bins=depth_bins,
+                            density=False)
+            hist_counts[:, i] = x[0]
+
+        # Compute total number of particles in each time step
+        total_particles = np.sum(hist_counts, axis=0)
+        sim_dict['counts'] = total_particles
+
+        p_zt = np.ma.masked_equal(hist_counts, 0)/total_particles
+        # creat a rolling average of h_masked
+
+        # h_masked.rolling(time=10, center=True, ).mean()
 
 
-    # compute the vertical information of h_masked
-    I = np.log2(1/p_zt).data
-    H = np.sum(p_zt.data*I, axis=0)
+        # compute the vertical information of h_masked
+        I = np.log2(1/p_zt).data
+        H = np.sum(p_zt.data*I, axis=0)
 
-    sim_dict['vertical_distribution'] = p_zt
-    sim_dict['vertical_information'] = I
-    sim_dict['entropy'] = H
+        sim_dict['vertical_distribution'] = p_zt
+        sim_dict['vertical_information'] = I
+        sim_dict['entropy'] = H
 
-    frag_into_NPs[ft] = sim_dict
+        frag_into_NPs[ft] = sim_dict
 
-
-
-# %% Save data 
-np.save('../data/frag_into_NPs.npy', frag_into_NPs, allow_pickle=True)
+    np.save('../data/frag_into_NPs.npy', frag_into_NPs, allow_pickle=True)
 
 #%% 
-frag_into_NPs = np.load('../data/frag_into_NPs.npy', allow_pickle=True)[()]
+if not run_for_loop:
+    frag_into_NPs = np.load('../data/frag_into_NPs.npy', allow_pickle=True)[()]
 
 # %% create dataframe with the data of fragmentation into NPs 
-
-df = pd.DataFrame(columns=['Particles', 'z median', 'z min', 'z max',
+if run_for_loop:
+    df = pd.DataFrame(columns=['Particles', 'z median', 'z min', 'z max',
                           'T_s mean', 'T_s std', 'T_s median', 'T_s min', 'T_s max',
                           'X mean', 'X std', 'X median', 'X min', 'X max'])
 
 
-
-for ft in simulations:
-    df.loc[ft] = [frag_into_NPs[ft]['particle_index'].size, 
-                    np.nanmedian(frag_into_NPs[ft]['depths']),
-                    np.nanmin(frag_into_NPs[ft]['depths']),
-                    np.nanmax(frag_into_NPs[ft]['depths']),
-                    np.nanmean(frag_into_NPs[ft]['particle_index']),
-                    np.nanstd(frag_into_NPs[ft]['particle_index']),
-                    np.nanmedian(frag_into_NPs[ft]['particle_index']),
-                    np.nanmin(frag_into_NPs[ft]['particle_index']),
-                    np.nanmax(frag_into_NPs[ft]['particle_index']),
-                    np.nanmean(frag_into_NPs[ft]['displacement']),
-                    np.nanstd(frag_into_NPs[ft]['displacement']),
-                    np.nanmedian(frag_into_NPs[ft]['displacement']),
-                    np.nanmin(frag_into_NPs[ft]['displacement']),
-                    np.nanmax(frag_into_NPs[ft]['displacement'])]
+    for ft in simulations:
+        df.loc[ft] = [frag_into_NPs[ft]['particle_index'].size, 
+                        np.nanmedian(frag_into_NPs[ft]['depths']),
+                        np.nanmin(frag_into_NPs[ft]['depths']),
+                        np.nanmax(frag_into_NPs[ft]['depths']),
+                        np.nanmean(frag_into_NPs[ft]['particle_index']),
+                        np.nanstd(frag_into_NPs[ft]['particle_index']),
+                        np.nanmedian(frag_into_NPs[ft]['particle_index']),
+                        np.nanmin(frag_into_NPs[ft]['particle_index']),
+                        np.nanmax(frag_into_NPs[ft]['particle_index']),
+                        np.nanmean(frag_into_NPs[ft]['displacement']),
+                        np.nanstd(frag_into_NPs[ft]['displacement']),
+                        np.nanmedian(frag_into_NPs[ft]['displacement']),
+                        np.nanmin(frag_into_NPs[ft]['displacement']),
+                        np.nanmax(frag_into_NPs[ft]['displacement'])]
     
 
-df.to_csv('../data/stats_frag_into_NPs.csv')
-print(df.to_latex('../figs/frag_into_NPS_table.tex')) # to print in latex format and save in a file
+    df.to_csv('../data/stats_frag_into_NPs.csv')
+    df.to_latex('../data/frag_into_NPS_table.tex') # to print in latex format and save in a file
 
 # %% Vertical distributions plots
 
@@ -165,7 +165,7 @@ fig.colorbar(im, ax=ax[-1], orientation='horizontal',
 
 # ax[0].set_title('Nanoparticles (50-1000 $nm$) in the water column')
 plt.show()
-fig.savefig('../figs/vertical_distributionsNPs.png', dpi=300,
+fig.savefig('../article_figs/vertical_distributionsNPs.png', dpi=300,
             facecolor=(1, 0, 0, 0))
 
 # # %% Vertical Information plots
@@ -265,7 +265,7 @@ labels = labels[::-1]
 
 ax3.legend(handles, labels, shadow=False)
 
-fig.savefig('../figs/depth_n_displacement.png', dpi=300,
+fig.savefig('../article_figs/depth_n_displacement.png', dpi=300,
             facecolor=(1, 0, 0, 0))
 
 
@@ -323,7 +323,7 @@ ax[0].grid()
 ax[1].grid()
 ax[2].grid()
 
-fig.savefig('../figs/ECDF_nanoparticles', dpi=300,
+fig.savefig('../article_figs/ECDF_nanoparticles', dpi=300,
             facecolor=(1, 0, 0, 0))
 
 
@@ -356,5 +356,5 @@ labels = labels[::-1]
 
 ax.legend(handles, labels, shadow=True)
 
-fig.savefig('../figs/Map_location_fragmentation_into_NPs.png', dpi=300,
+fig.savefig('../article_figs/Map_location_fragmentation_into_NPs.png', dpi=300,
             facecolor=(1, 0, 0, 0))

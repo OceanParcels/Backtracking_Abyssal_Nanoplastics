@@ -13,7 +13,7 @@ from parcels import ErrorCode, Field
 from parcels.application_kernels.TEOSseawaterdensity import PolyTEOS10_bsq
 from datetime import timedelta
 from datetime import datetime
-import kernels_simplev3 as kernels_simple
+import kernels_simplev2 as kernels_simple
 import sys
 from tqdm import tqdm
 import xarray as xr
@@ -68,7 +68,7 @@ else:
     
     file_range = range(6, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/hc13_2/hc13_{frag_timescale}_k2.zarr'
+        f'data_Claudio/hc13_2/hc13_{frag_timescale}_nodiff.zarr'
     chunking_express = 500
 
 # Loading the only the files that we need.

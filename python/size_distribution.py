@@ -93,7 +93,7 @@ for ft in simulations:
     
 
 df.to_csv('../data/size_distribution_surface.csv')
-df.to_latex('../figs/surface_events_numbers.tex') # to print in latex format and save in a file
+df.to_latex('../article_figs/surface_events_numbers.tex') # to print in latex format and save in a file
 
 # %% ecdf surfacetime and size distribution of particles at the surface
 
@@ -112,7 +112,7 @@ for j, ft in enumerate(simulations[::-1]):
 
 
 ax[0].axvline(1e-6, ls='--', label=r"1 $\mu m$ limit", color='black')
-ax[0].axvline(1e-3, ls='--', label=r"Frag. Kernel limit", color='red')
+ax[0].axvline(1e-4, ls='--', label=r"Frag. Kernel limit", color='red')
 
 ax[1].axvline(sim_time, ls=':', label=r"Simulation time limit", color='red')
 
@@ -123,9 +123,9 @@ labels = labels[::-1]
 ax[0].legend(handles, labels, fontsize=6, shadow=True)
 ax[1].legend(fontsize=6, shadow=True)
 ax[0].semilogx()
-ax[0].set_xlabel('L (m)')
-ax[0].set_ylabel(r'ECDF: $P(x \leq L)$')
-ax[0].set_title('Particle Size from Surface')
+ax[0].set_xlabel('Particle Radius (m)')
+ax[0].set_ylabel(r'ECDF: $P(x \leq R)$')
+ax[0].set_title('Particle Radius from Surface')
 
 ax[1].set_xlabel(r'$T_s$ (days)')
 ax[1].set_ylabel(r'ECDF: $P(x \leq T_s)$')
@@ -144,7 +144,7 @@ ax[0].grid()
 ax[1].grid()
 ax[2].grid()
 
-fig.savefig('../figs/ECDF_surface', dpi=300,
+fig.savefig('../article_figs/ECDF_surface', dpi=300,
             facecolor=(1, 0, 0, 0))
 
 
@@ -169,13 +169,13 @@ for r in range(8):
     ax.add_geometries((geom,), crs=ccrs.PlateCarree(), facecolor='none',
                       edgecolor='black', linewidth=1., zorder=3, ls='--')
 
-ax.set_title('Location of particles coming from the surface')
+# ax.set_title('Location of particles coming from the surface')
 handles, labels = ax.get_legend_handles_labels()
 handles = handles[::-1]
 labels = labels[::-1]
 
 ax.legend(handles, labels, shadow=True)
-fig.savefig('../figs/Map_location_surface.png', dpi=300,
+fig.savefig('../article_figs/Map_location_surface.png', dpi=300,
             facecolor=(1, 0, 0, 0))
 
 # %%
