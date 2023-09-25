@@ -13,7 +13,7 @@ from parcels import ErrorCode, Field
 from parcels.application_kernels.TEOSseawaterdensity import PolyTEOS10_bsq
 from datetime import timedelta
 from datetime import datetime
-import kernels_simplev2 as kernels_simple
+import kernels_simple as kernels_simple
 import sys
 from tqdm import tqdm
 import xarray as xr
@@ -29,12 +29,19 @@ frag_timescale = int(sys.argv[1])
 Frag_on = sys.argv[2]
 
 # Initial conditions
-initial_depth = 5000 #This gets corrected by runinng kernel Initialize_particle_depth at dt=0
-lon_sample = 6.287
-lat_sample = -32.171
-start_time = datetime.strptime('2019-01-20 12:00:00', '%Y-%m-%d %H:%M:%S')
+# HC13 depth: 5000 m
+# HC11 depth: 4835 m
+initial_depth = 4835
 
+# HC13 lat: -32.171, lon: 6.287
+# HC11 lat: -29.992, lon: -3.822
+lon_sample = -3.822
+lat_sample = -29.992
 
+#HC13 date: '2019-01-20 12:00:00'
+#HC11 date: '2019-01-16 12:00:00'
+
+start_time = datetime.strptime('2019-01-16 12:00:00', '%Y-%m-%d %H:%M:%S')
 
 # Particle Size and Density
 initial_particle_density = 1380  # PET & PVC kg/m3
@@ -68,7 +75,7 @@ else:
     
     file_range = range(6, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/hc13_2/hc13_{frag_timescale}_nodiff.zarr'
+        f'data_Claudio/hc11/hc11_{frag_timescale}.zarr'
     chunking_express = 500
 
 # Loading the only the files that we need.
@@ -253,7 +260,7 @@ print('Kernels loaded')
 
 # Output file
 output_file = pset.ParticleFile(name=output_path,
-                                outputdt=timedelta(hours=24),
+                                outputdt=timedelta(hours=1),
                                chunks=(n_points, chunking_express))
 
 pset.execute(kernels,
