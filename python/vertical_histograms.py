@@ -113,31 +113,31 @@ if not run_for_loop:
     frag_into_NPs = np.load('../data/frag_into_NPs.npy', allow_pickle=True)[()]
 
 # %% create dataframe with the data of fragmentation into NPs 
-if run_for_loop:
-    df = pd.DataFrame(columns=['Particles', 'z median', 'z min', 'z max',
-                          'T_s mean', 'T_s std', 'T_s median', 'T_s min', 'T_s max',
-                          'X mean', 'X std', 'X median', 'X min', 'X max'])
+
+df = pd.DataFrame(columns=['Particles', 'z median', 'z min', 'z max',
+                        'T_s mean', 'T_s std', 'T_s median', 'T_s min', 'T_s max',
+                        'X mean', 'X std', 'X median', 'X min', 'X max'])
 
 
-    for ft in simulations:
-        df.loc[ft] = [frag_into_NPs[ft]['particle_index'].size, 
-                        np.nanmedian(frag_into_NPs[ft]['depths']),
-                        np.nanmin(frag_into_NPs[ft]['depths']),
-                        np.nanmax(frag_into_NPs[ft]['depths']),
-                        np.nanmean(frag_into_NPs[ft]['particle_index']),
-                        np.nanstd(frag_into_NPs[ft]['particle_index']),
-                        np.nanmedian(frag_into_NPs[ft]['particle_index']),
-                        np.nanmin(frag_into_NPs[ft]['particle_index']),
-                        np.nanmax(frag_into_NPs[ft]['particle_index']),
-                        np.nanmean(frag_into_NPs[ft]['displacement']),
-                        np.nanstd(frag_into_NPs[ft]['displacement']),
-                        np.nanmedian(frag_into_NPs[ft]['displacement']),
-                        np.nanmin(frag_into_NPs[ft]['displacement']),
-                        np.nanmax(frag_into_NPs[ft]['displacement'])]
-    
+for ft in simulations:
+    df.loc[ft] = [frag_into_NPs[ft]['particle_index'].size, 
+                    np.nanmedian(frag_into_NPs[ft]['depths']),
+                    np.nanmin(frag_into_NPs[ft]['depths']),
+                    np.nanmax(frag_into_NPs[ft]['depths']),
+                    np.nanmean(frag_into_NPs[ft]['particle_index']),
+                    np.nanstd(frag_into_NPs[ft]['particle_index']),
+                    np.nanmedian(frag_into_NPs[ft]['particle_index']),
+                    np.nanmin(frag_into_NPs[ft]['particle_index']),
+                    np.nanmax(frag_into_NPs[ft]['particle_index']),
+                    np.nanmean(frag_into_NPs[ft]['displacement']),
+                    np.nanstd(frag_into_NPs[ft]['displacement']),
+                    np.nanmedian(frag_into_NPs[ft]['displacement']),
+                    np.nanmin(frag_into_NPs[ft]['displacement']),
+                    np.nanmax(frag_into_NPs[ft]['displacement'])]
 
-    df.to_csv('../data/stats_frag_into_NPs.csv')
-    df.to_latex('../data/frag_into_NPS_table.tex') # to print in latex format and save in a file
+
+df.to_csv('../article_figs/stats_frag_into_NPs.csv')
+df.to_latex('../article_figs/frag_into_NPS_table.tex') # to print in latex format and save in a file
 
 # %% Vertical distributions plots
 
@@ -153,7 +153,7 @@ for j, ft in enumerate(simulations):
     im = ax[j].pcolormesh(x, y, frag_into_NPs[ft]['vertical_distribution'],
                           cmap=color_map,
                           vmin=0, vmax=0.2)
-    ax[j].text(18200, -1500, f'$\lambda_f$ = {ft} days', fontsize=8,
+    ax[j].text(17900, -1500, f'$\lambda_f$ = {ft} days', fontsize=8,
                ha='right')
     ax[j].set_yticks([-5500, -2500, 0])
     ax[j].grid()
@@ -323,6 +323,13 @@ ax[0].grid()
 ax[1].grid()
 ax[2].grid()
 
+ax[0].text(5600, 0, r'A', fontsize=12,
+               ha='right')
+ax[1].text(4400, 0, r'B', fontsize=12,
+               ha='right')
+ax[2].text(7500, 0, r'C', fontsize=12,
+               ha='right')
+
 fig.savefig('../article_figs/ECDF_nanoparticles', dpi=300,
             facecolor=(1, 0, 0, 0))
 
@@ -349,7 +356,7 @@ for r in range(7):
     ax.add_geometries((geom,), crs=ccrs.PlateCarree(), facecolor='none',
                       edgecolor='black', linewidth=1., zorder=3, ls='--')
 
-ax.set_title('Where do the particles fragment into Nanoparticles?')
+# ax.set_title('Where do the particles fragment into Nanoparticles?')
 handles, labels = ax.get_legend_handles_labels()
 handles = handles[::-1]
 labels = labels[::-1]

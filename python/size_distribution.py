@@ -144,6 +144,13 @@ ax[0].grid()
 ax[1].grid()
 ax[2].grid()
 
+ax[0].text(1e-3, 0, r'A', fontsize=12,
+               ha='right')
+ax[1].text(4400, 0, r'B', fontsize=12,
+               ha='right')
+ax[2].text(6800, 0, r'C', fontsize=12,
+               ha='right')
+
 fig.savefig('../article_figs/ECDF_surface', dpi=300,
             facecolor=(1, 0, 0, 0))
 
