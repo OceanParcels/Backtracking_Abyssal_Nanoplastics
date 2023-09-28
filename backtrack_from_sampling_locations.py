@@ -67,7 +67,7 @@ if Test_run:
 else:
     # Number of particles and simulation time
     n_points = 8192 #2^13
-    sim_time = 4484
+    sim_time = 3*365 #4484
     # From 11 October 2006 to and including 20 January 2019 (forward).
     # Result: 4485 days or 12 years, 3 months, 10 days including the end date.
     end_time = datetime.strptime('2006-10-11 12:00:00', '%Y-%m-%d %H:%M:%S')
@@ -259,7 +259,7 @@ print('Kernels loaded')
 
 # Output file
 output_file = pset.ParticleFile(name=output_path,
-                                outputdt=timedelta(hours=1),
+                                outputdt=timedelta(days=1),
                                chunks=(n_points, chunking_express))
 
 pset.execute(kernels,
