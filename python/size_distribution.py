@@ -97,48 +97,60 @@ df.to_latex('../article_figs/surface_events_numbers.tex') # to print in latex fo
 
 # %% ecdf surfacetime and size distribution of particles at the surface
 
+def forward(x):
+    return x**(1/2)
+
+def inverse(x):
+    return x**2
+
 fig, ax = plt.subplots(1, 3, figsize=(12, 3.5), tight_layout=True)
+
+ax[0].axvline(1e-6, ls=':', color='black')
+ax[0].axvline(1e-4, ls=':', label=r"Fragmentation limit", color='red')
+ax[1].axvline(sim_time, ls=':', label=r"Simulation time limit", color='black')
+ax[1].text(4300, 0.19, r'Time Limit', fontsize=6, color='k', rotation=-90)
+ax[0].text(1e-6, 0.19, r"1 $\mu m$ Limit", fontsize=6, color='k', rotation=-90)
 
 for j, ft in enumerate(simulations[::-1]):
 
     x, y = funk.ecdf(surface_events[ft]['radius'], normalized=True)
-    ax[0].plot(x, y, drawstyle='steps-post', label=f'$\lambda_f$ = {ft} days')
+    ax[0].plot(x, y, drawstyle='steps-post')
 
     x, y = funk.ecdf(surface_events[ft]['surface_time'], normalized=True)
     ax[1].plot(x, y, drawstyle='steps-post')
 
     x, y = funk.ecdf(surface_events[ft]['displacement']/1e3, normalized=True)
-    ax[2].plot(x, y, drawstyle='steps-post')    
+    ax[2].plot(x, y, drawstyle='steps-post', label=f'$\lambda_f$ = {ft} days')    
 
 
-ax[0].axvline(1e-6, ls='--', label=r"1 $\mu m$ limit", color='black')
-ax[0].axvline(1e-4, ls='--', label=r"Frag. Kernel limit", color='red')
+ax[2].set_xscale('function', functions=(forward, inverse))
 
-ax[1].axvline(sim_time, ls=':', label=r"Simulation time limit", color='red')
-
-handles, labels = ax[0].get_legend_handles_labels()
+handles, labels = ax[2].get_legend_handles_labels()
 handles = handles[::-1]
 labels = labels[::-1]
 
-ax[0].legend(handles, labels, fontsize=6, shadow=True)
-ax[1].legend(fontsize=6, shadow=True)
+ax[0].legend(fontsize=7, shadow=True)
+ax[2].legend(handles, labels, fontsize=7, shadow=True, loc='center right')
 ax[0].semilogx()
-ax[0].set_xlabel('Particle Radius (m)')
+ax[0].set_xlabel('Surface Particle Radius, $R$ [m]')
 ax[0].set_ylabel(r'ECDF: $P(x \leq R)$')
-ax[0].set_title('Particle Radius from Surface')
+# ax[0].set_title('Particle Radius from Surface')
 
-ax[1].set_xlabel(r'$T_s$ (days)')
+ax[1].set_xlabel(r'Surface Drift Time, $T_s$ [days]')
 ax[1].set_ylabel(r'ECDF: $P(x \leq T_s)$')
-ax[1].set_title('Drift Time from Surface')
+# ax[1].set_title('Drift Time from Surface')
 
-ax[2].set_xlabel(r'$X$ (km)')
+ax[2].set_xlabel(r'Displacement from Surface, $X$ [km]')
 ax[2].set_ylabel(r'ECDF: $P(x \leq X)$')
-ax[2].set_title('Displacement from Surface')
+# ax[2].set_title('Displacement from Surface')
 
 gridy = np.linspace(0, 1, 11)
+gridx = [500, 1000] + [i for i in range(2000, 10000, 2000)]
+
 ax[0].set_yticks(gridy)
 ax[1].set_yticks(gridy)
 ax[2].set_yticks(gridy)
+ax[2].set_xticks(gridx)
 
 ax[0].grid()
 ax[1].grid()

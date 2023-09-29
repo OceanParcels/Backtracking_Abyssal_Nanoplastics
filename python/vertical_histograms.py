@@ -137,7 +137,7 @@ for ft in simulations:
 
 
 df.to_csv('../article_figs/stats_frag_into_NPs.csv')
-df.to_latex('../article_figs/frag_into_NPS_table.tex') # to print in latex format and save in a file
+# df.to_latex('../article_figs/frag_into_NPS_table.tex') # to print in latex format and save in a file
 
 # %% Vertical distributions plots
 
@@ -253,8 +253,7 @@ for j, ft in enumerate(simulations[::-1]):
 
 
 ax3.axhline(initial_depth, color='k', linestyle='--', label='Sampling depth')
-# ax3.scatter(0, initial_depth,
-#            label = 'Sampling Location', marker='*', s=50)
+
 
 ax3.axhline(0, color='r', linestyle='--')
 ax3.text(100, -160, 'Surface', color='r')
@@ -270,7 +269,24 @@ fig.savefig('../article_figs/depth_n_displacement.png', dpi=300,
 
 
 # %% ecdf surfacetime and size distribution of particles at the surface
+# Function x**(1/2)
+def forward(x):
+    return x**(1/2)
+
+def inverse(x):
+    return x**2
+
+
 fig, ax = plt.subplots(1, 3, figsize=(12, 3.5), tight_layout=True)
+
+ax[0].axvline(-initial_depth, ls=':', color='k')
+ax[0].text(-initial_depth + 50, 0.05, r'Sampling Depth', fontsize=6, color='k', rotation=-90)
+ax[0].axvline(0, ls=':', color='k')
+ax[0].text(0, 0.08, r'Surface', fontsize=6, color='k', rotation=-90)
+
+ax[1].axvline(sim_time, ls=':', color='k')
+ax[1].text(4300, 0.49, r'Time Limit', fontsize=6, color='k', rotation=-90)
+
 
 for j, ft in enumerate(simulations[::-1]):
 
@@ -280,50 +296,51 @@ for j, ft in enumerate(simulations[::-1]):
     
     x, y = funk.ecdf(frag_into_NPs[ft]['particle_index'], normalized=True,
                      invert=False)
-    ax[1].plot(x, y, drawstyle='steps-post')
+    
+    if ft == 10000 or ft == 1000:
+        ax[1].plot(x[:-1], y[:-1], drawstyle='steps-post')
+    else:
+        ax[1].plot(x, y, drawstyle='steps-post')
     
     x, y = funk.ecdf(frag_into_NPs[ft]['displacement']/1e3, normalized=True,
                      invert=False)
     ax[2].plot(x, y, drawstyle='steps-post', label=f'$\lambda_f$ = {ft} days')
 
 
+ax[0].set_yscale('function', functions=(forward, inverse))
+ax[2].set_xscale('function', functions=(forward, inverse))
 
-ax[0].axvline(0, ls='--', label=r"Surface", color='r')
-ax[0].axvline(-initial_depth, ls='--', label=r"Sampling Depth", color='k')
-
-ax[1].axvline(sim_time, ls='--', label=r"Simulation time limit", color='red')
+# ax[0].axvline(initial_depth, ls=':', label=r"Sampling Depth", color='k')
 
 handles, labels = ax[0].get_legend_handles_labels()
 handles = handles[::-1]
 labels = labels[::-1]
 
-ax[0].legend(handles, labels, fontsize=6, shadow=True, ncol=2,
-             loc='upper left')
-ax[1].legend(fontsize=6, shadow=True, loc='center right')
+ax[0].legend(handles, labels, fontsize=7, shadow=True, ncol=2,
+         loc='best')
 
-# ax[1].semilogx()
-ax[0].set_xlabel('|z| (m)')
-ax[0].set_ylabel(r'ECDF: $P(x \leq |z|)$')
-ax[0].set_title('Depth of Fragmentation into NPs')
+ax[0].set_xlabel('Fragmentation Depth, $z$ [m]')
+ax[0].set_ylabel(r'ECDF: $P(x \leq z)$')
 
-ax[2].set_xlabel(r'$X$ (km)')
-ax[2].set_ylabel(r'ECDF: $P(x \leq X)$')
-ax[2].set_title('Total Displacement as NPs')
-
-ax[1].set_xlabel(r'$T_{NP}$ (days)')
+ax[1].set_xlabel('Drift Time, $T_{NP}$ [days]')
 ax[1].set_ylabel(r'ECDF: $P(x \leq T_{NP})$')
-ax[1].set_title('Drift Time as NPs')
+
+ax[2].set_xlabel('Horizontal displacement, $X$ [km]')
+ax[2].set_ylabel(r'ECDF: $P(x \leq X)$')
 
 gridy = np.linspace(0, 1, 11)
+gridx = [500, 1000] + [i for i in range(2000, 10000, 2000)]
+
 ax[0].set_yticks(gridy)
 ax[1].set_yticks(gridy)
 ax[2].set_yticks(gridy)
+ax[2].set_xticks(gridx)
 
 ax[0].grid()
 ax[1].grid()
 ax[2].grid()
 
-ax[0].text(5600, 0, r'A', fontsize=12,
+ax[0].text(5500, 0.005, r'A', fontsize=12,
                ha='right')
 ax[1].text(4400, 0, r'B', fontsize=12,
                ha='right')

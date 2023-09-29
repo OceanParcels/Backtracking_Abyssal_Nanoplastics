@@ -67,7 +67,7 @@ if Test_run:
 else:
     # Number of particles and simulation time
     n_points = 8192 #2^13
-    sim_time = 3*365 #4484
+    sim_time = 4480 # 4484
     # From 11 October 2006 to and including 20 January 2019 (forward).
     # Result: 4485 days or 12 years, 3 months, 10 days including the end date.
     end_time = datetime.strptime('2006-10-11 12:00:00', '%Y-%m-%d %H:%M:%S')
@@ -169,7 +169,7 @@ dimensions = {'U': {'lon': 'glamf',
 
 # indices = {'lat': range(0, 1700), 'lon': range(200, 4321)}
 indices = {'lat': range(200, 1700), 'lon': range(2300, 4321)} # whole domain for frag timescale < 400
-# indices = {'lat': range(0, 1700)} # whole domain for frag timescale >= 400
+# indices = {'lat': range(200, 1700)} # whole domain for frag timescale >= 400
 
 fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
                               allow_time_extrapolation=False,
