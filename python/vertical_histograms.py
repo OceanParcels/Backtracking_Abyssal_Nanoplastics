@@ -95,7 +95,6 @@ if run_for_loop:
 
         # h_masked.rolling(time=10, center=True, ).mean()
 
-
         # compute the vertical information of h_masked
         I = np.log2(1/p_zt).data
         H = np.sum(p_zt.data*I, axis=0)

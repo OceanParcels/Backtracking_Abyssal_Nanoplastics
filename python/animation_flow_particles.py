@@ -1,28 +1,28 @@
 import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
-
 import cmocean
 import matplotlib.gridspec as gridspec
-
-import matplotlib
-
 from matplotlib.animation import FuncAnimation, writers, PillowWriter, FFMpegWriter
-
 from glob import glob
-from datetime import timedelta
-
-
 from datetime import datetime
 from tqdm import tqdm
-from IPython.display import HTML
-
 import matplotlib.ticker as mticker
+
+location = 'hc11'
+if location == 'hc13':
+    start_time = datetime.strptime('2019-01-20 12:00:00', '%Y-%m-%d %H:%M:%S')
+    lat_obs = -32.171
+    lon_obs = 6.287
+
+elif location == 'hc11':
+    start_time = datetime.strptime('2019-01-16 12:00:00', '%Y-%m-%d %H:%M:%S')
+    lon_obs = -3.822
+    lat_obs = -29.992
 
 path_flow = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
 files = sorted(glob(path_flow + 'psy4v3r1-daily_T_*.nc'))
 
-start_time = datetime.strptime('2019-01-20 12:00:00', '%Y-%m-%d %H:%M:%S')
 end_time = datetime.strptime('2006-10-11 12:00:00', '%Y-%m-%d %H:%M:%S')
 start_index = 0 
 end_index = 0
@@ -66,7 +66,7 @@ for i, filename in enumerate(tqdm(files)):
 fields = fields[::-1]
 time = time[::-1]
 
-pset = xr.open_zarr('/storage/shared/oceanparcels/output_data/data_Claudio/hc13_2/hc13_0.zarr')
+pset = xr.open_zarr('/storage/shared/oceanparcels/output_data/data_Claudio/hc11/hc11_0.zarr')
 pset = pset.compute()
 
 fig = plt.figure(figsize=(6,7))
@@ -111,6 +111,4 @@ def animate(i):
 anim = FuncAnimation(fig, animate, frames=4480 , interval=100, blit=True, repeat=True)
 
 writergif = PillowWriter(fps=30, codec="libx264")
-anim.save('../article_figs/hc13_T3600_inf.gif', writer=writergif)
-
-# plt.show()
+anim.save(f'../article_figs/{location}_T3600_inf.gif', writer=writergif)
