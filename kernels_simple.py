@@ -41,6 +41,8 @@ class PlasticParticle(JITParticle):
     #number of times particles fragments
     frag_events = Variable('frag_events', dtype=np.float32, initial=0)
     
+    in_ml = Variable('in_ml', dtype=np.float32, initial=0)
+    
 
 def delete_particle(particle, fieldset, time):
     particle.delete()
@@ -61,6 +63,13 @@ def SampleField(particle, fieldset, time):
     
     particle.bottom = fieldset.depth_zgrid[time, particle.depth, 
                                           particle.lat, particle.lon]
+    mixed_layer = fieldset.mld[time, particle.depth,
+                                particle.lat, particle.lon] 
+    
+    if particle.depth < mixed_layer:
+        particle.in_ml = 1.
+    else:
+        particle.in_ml = 0.
 
 
 def AdvectionRK4_3D(particle, fieldset, time):
@@ -110,7 +119,11 @@ def SinkingVelocity(particle, fieldset, time):
     viscosity = 1.5e-6 # m2/s kinematic viscosity
  
     v_s = (beta - 1)*9.81*2*particle.radius**2/(9*viscosity)
-    particle.v_s = v_s
+    
+    Re = v_s*2*particle.radius/viscosity # Reynolds number
+    C_Re = 1 + 0.15*Re**0.687 # Correction factor for Re > 1
+    
+    particle.v_s = v_s/C_Re 
 
 
 def VerticalRandomWalk(particle, fieldset, time):
@@ -204,7 +217,7 @@ def Fragmentation(particle, fieldset, time):
             plim3 = 32/N_total
             plim2 = plim3 + 8/N_total 
             plim1 = plim2 + 2/N_total
-            plim0 = plim1 + 0.5/N_total
+            # plim0 = plim1 + 0.5/N_total
             
             if nummer <= plim3:
                 particle.radius = 8*particle.radius
@@ -256,4 +269,3 @@ def reflectiveBC_bottom(particle, fieldset, time):
         
     else:
         particle.depth += 0
-

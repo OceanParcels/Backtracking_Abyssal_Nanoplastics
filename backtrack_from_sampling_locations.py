@@ -30,17 +30,17 @@ Frag_on = sys.argv[2]
 # Initial conditions
 # HC13 depth: 5000 m
 # HC11 depth: 4835 m
-initial_depth = 4835
+initial_depth = 5000
 
 # HC13 lat: -32.171, lon: 6.287
 # HC11 lat: -29.992, lon: -3.822
-lon_sample = -3.822
-lat_sample = -29.992
+lon_sample = 6.287
+lat_sample = -32.171
 
 #HC13 date: '2019-01-20 12:00:00'
 #HC11 date: '2019-01-16 12:00:00'
 
-start_time = datetime.strptime('2019-01-16 12:00:00', '%Y-%m-%d %H:%M:%S')
+start_time = datetime.strptime('2019-01-20 12:00:00', '%Y-%m-%d %H:%M:%S')
 
 # Particle Size and Density
 initial_particle_density = 1380  # PET & PVC kg/m3
@@ -48,7 +48,7 @@ initial_particle_density = 1380  # PET & PVC kg/m3
 ###############################################################################
 # %%
 ###############################################################################
-data_path = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
+data_path = '/storage2/shared/oceanparcels/input_data/MOi/psy4v3r1/'
 wfiles = sorted(glob(data_path + f'psy4v3r1-daily_W_*.nc'))
 
 if Test_run:
@@ -56,7 +56,7 @@ if Test_run:
     n_points = 100
     sim_time = 60  # days backwards
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-                    f'data_Claudio/tests/optimum.zarr'
+                    f'data_Claudio/tests/cgrid_interp.zarr'
     
     wfiles = sorted(glob(data_path+'psy4v3r1-daily_W_2018-11-*.nc'))
     wfiles += sorted(glob(data_path+'psy4v3r1-daily_W_2018-12-*.nc'))
@@ -74,7 +74,7 @@ else:
     
     file_range = range(6, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/hc11/hc11_{frag_timescale}.zarr'
+        f'data_Claudio/hc13_3/hc13_{frag_timescale}.zarr'
     chunking_express = 500
 
 # Loading the only the files that we need.
@@ -100,7 +100,7 @@ ufiles = [f.replace('_W_', '_U_') for f in wfiles]
 tfiles = [f.replace('_W_', '_T_') for f in wfiles]
 sfiles = [f.replace('_W_', '_S_') for f in wfiles]
 KZfiles = [f.replace('_W_', '_KZ_') for f in wfiles]
-
+twoDfiles = [f.replace('_W_', '_2D_') for f in wfiles]
 
 mesh_mask = '/storage/shared/oceanparcels/input_data/MOi/' + \
             'domain_ORCA0083-N006/coordinates.nc'
@@ -125,6 +125,10 @@ filenames = {'U': {'lon': mesh_mask,
                              'lat': mesh_mask,
                              'depth': wfiles[0],
                              'data': sfiles},
+            'mld': {'lon': mesh_mask,
+                    'lat': mesh_mask,
+                    'depth': twoDfiles[0],
+                    'data': twoDfiles},
             'Kz': {'lon': mesh_mask,
                    'lat': mesh_mask,
                    'depth': wfiles[0],
@@ -135,6 +139,7 @@ variables = {'U': 'vozocrtx',
              'W': 'vovecrtz',
              'cons_temperature': 'votemper',
              'abs_salinity': 'vosaline',
+             'mld': 'somxlavt',
              'Kz': 'votkeavt'}
 
 dimensions = {'U': {'lon': 'glamf',
@@ -157,6 +162,10 @@ dimensions = {'U': {'lon': 'glamf',
                               'lat': 'gphif',
                               'depth': 'depthw',
                               'time': 'time_counter'},
+              'mld': {'lon': 'glamf',
+                            'lat': 'gphif',
+                            'depth': 'deptht',
+                            'time': 'time_counter'},
               'Kz': {'lon': 'glamf',
                     'lat': 'gphif',
                     'depth': 'depthw',
@@ -176,6 +185,7 @@ fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
                               indices=indices,
                               chunksize=False)
 
+fieldset.Kz.interp_method = 'linear'
 
 zdepth_file = '/nethome/6525954/depth_zgrid_ORCA12_V3.3.nc' 
 zdepth = xr.load_dataset(zdepth_file)
