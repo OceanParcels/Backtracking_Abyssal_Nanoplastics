@@ -14,7 +14,7 @@ from tqdm import tqdm
 from datetime import datetime
 import draft_functions as funk
 
-run_for_loop = False
+run_for_loop = True
 
 # Define initial conditions
 initial_depth = -5000  # int(sys.argv[1])  # 5 # 60 # 5179
@@ -45,7 +45,7 @@ if run_for_loop:
         sim_dict = {}
 
         # Load the data from the simulation
-        local_path = f'/storage/shared/oceanparcels/output_data/data_Claudio/hc13_2/hc13_{ft}.zarr'
+        local_path = f'/storage/shared/oceanparcels/output_data/data_Claudio/hc13_3/hc13_{ft}.zarr'
         sim = xr.open_zarr(local_path)
         nano = sim.where(sim.radius < 1e-6/2, drop=False)
         
@@ -361,7 +361,7 @@ for j, ft in enumerate(simulations[::-1]):
                marker=next(marker))
 
 ax.scatter(origin[0], origin[1], zorder=5,
-           label='Sampling Location', marker='*', s=80)
+           label='Sampling Location', marker='*', s=80, edgecolors='k')
 
 for r in range(7):
     circle_points = geodesic.Geodesic().circle(lon=origin[0], lat=origin[1],

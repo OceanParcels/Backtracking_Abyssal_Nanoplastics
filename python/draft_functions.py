@@ -233,5 +233,3 @@ def bathymetry_subplots(nrows=2,ncols=1, figsize=(13, 7),alpha=1., ):
                                             label='Depth (m)')
 
     return fig, ax
-
-

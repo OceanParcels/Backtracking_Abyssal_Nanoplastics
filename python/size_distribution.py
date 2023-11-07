@@ -10,7 +10,7 @@ import pandas as pd
 from tqdm import tqdm
 from datetime import datetime
 import draft_functions as funk
-
+import cartopy.feature as cfeature
 
 # %%
 initial_depth = -5100  # int(sys.argv[1])  # 5 # 60 # 5179
@@ -33,7 +33,7 @@ surface_events = {}
 
 for ft in tqdm(simulations):
     # print('Computing fragmentation timescale: ', ft)
-    local_path = f'/storage/shared/oceanparcels/output_data/data_Claudio/hc13_2/hc13_{ft}.zarr'
+    local_path = f'/storage/shared/oceanparcels/output_data/data_Claudio/hc13_3/hc13_{ft}.zarr'
     sim = xr.open_zarr(local_path)
 
     # loading fields as np arrays to do some nasty indexing
@@ -169,7 +169,24 @@ fig.savefig('../article_figs/ECDF_surface', dpi=300,
 
 # %% Supporting map of the distributions
 marker = itertools.cycle(('v', 'h', 'd', 'o', 'X', 'P', '^', 's'))
-fig, ax = funk.bathymetry_plot(alpha=0.1)
+
+fig,ax = plt.subplots(figsize=(10,8),
+                      subplot_kw={'projection': ccrs.PlateCarree()}, constrained_layout=True)
+
+gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+                  linewidth=1, color='black', alpha=0.3, linestyle=':')
+gl.top_labels = False
+gl.right_labels = False
+gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+                  linewidth=0.5, color='black', alpha=0.5, linestyle='--')
+gl.top_labels = False
+gl.right_labels = False
+
+# ax.set_extent([0, 40,-60.916664, -20], crs=ccrs.PlateCarree())
+
+# ax.add_feature(cfeature.OCEAN)
+ax.add_feature(cfeature.LAND, zorder=1, color='black')
+# ax.add_feature(cfeature.COASTLINE)
 
 for j, ft in enumerate(simulations[::-1]):
     ax.scatter(surface_events[ft]['lon'], surface_events[ft]['lat'],
@@ -177,24 +194,92 @@ for j, ft in enumerate(simulations[::-1]):
                label=f"$\lambda_f$ = {ft} days", marker=next(marker))
 
 ax.scatter(origin[0], origin[1], zorder=5,
-           label='Sampling Location', marker='*', s=80)
+           label='Sampling Location', marker='*', s=100, edgecolors='black')
 
-for r in range(8):
+for r in range(1, 10):
     circle_points = geodesic.Geodesic().circle(lon=origin[0], lat=origin[1],
                                                radius=r*1e6,
-                                               n_samples=100,
+                                               n_samples=360,
                                                endpoint=False)
     geom = shapely.geometry.Polygon(circle_points)
     ax.add_geometries((geom,), crs=ccrs.PlateCarree(), facecolor='none',
-                      edgecolor='black', linewidth=1., zorder=3, ls='--')
-
-# ax.set_title('Location of particles coming from the surface')
+                      edgecolor='black', linewidth=1., zorder=3, ls='--',
+                      label=f'{r} km')
+    
 handles, labels = ax.get_legend_handles_labels()
 handles = handles[::-1]
 labels = labels[::-1]
 
-ax.legend(handles, labels, shadow=True)
+ax.text(3.3, -24.5, r"$1,000$ km", fontsize=5)
+ax.text(-14.5, -30.5, r"$2,000$ km", fontsize=5, rotation=70)
+ax.text(-25., -30.5, r"$3,000$ km", fontsize=5, rotation=70)
+ax.text(-35.6, -30.5, r"$4,000$ km", fontsize=5, rotation=70)
+ax.text(-46.6, -31.5, r"$5,000$ km", fontsize=5, rotation=70)
+ax.text(-63.5, -48.5, r"$6,000$ km", fontsize=5, rotation=75)
+ax.text(-79.3, -52.5, r"$7,000$ km", fontsize=5, rotation=62)
+ax.text(-89.5, -45.3, r"$8,000$ km", fontsize=5, rotation=53)
+ax.text(-89.5, -27.3, r"$9,000$ km", fontsize=5, rotation=55)
+ax.set_extent([-97, 65, -63, 0], crs=ccrs.PlateCarree())
+
+ax.legend(handles, labels, ncols=3, fontsize=9, shadow=True) 
 fig.savefig('../article_figs/Map_location_surface.png', dpi=300,
             facecolor=(1, 0, 0, 0))
 
-# %%
+# %% Results ECDF
+frag_into_NPs = np.load('../data/frag_into_NPs.npy', allow_pickle=True)[()]
+
+fig, ax = plt.subplots(1, 2, figsize=(8, 3.5), tight_layout=True)
+
+ax[0].axvline(-initial_depth, ls=':', color='k')
+ax[0].text(-initial_depth + 50, 0.05, r'Sampling Depth', fontsize=6, color='k', rotation=-90)
+ax[0].axvline(0, ls=':', color='k')
+ax[0].text(0, 0.08, r'Surface', fontsize=6, color='k', rotation=-90)
+
+ax[1].axvline(1e-6, ls=':', color='black')
+ax[1].axvline(1e-4, ls=':', label=r"Fragmentation limit", color='red')
+ax[1].text(1e-6, 0.08, r"1 $\mu m$ Limit", fontsize=6, color='k', rotation=-90)
+ax[1].text(1.1e-4, 0.01, r"Fragmentation Limit", fontsize=6, color='r', rotation=-90)
+
+for j, ft in enumerate(simulations[::-1]):
+
+    x, y = funk.ecdf(abs(frag_into_NPs[ft]['depths']), normalized=True,
+                     invert=False)
+    ax[0].plot(x, y, drawstyle='steps-post', label=f'$\lambda_f$ = {ft} days')
+    
+    x, y = funk.ecdf(frag_into_NPs[ft]['particle_index'], normalized=True,
+                     invert=False)
+    
+    x, y = funk.ecdf(surface_events[ft]['radius'], normalized=True)
+    ax[1].plot(x, y, drawstyle='steps-post')
+
+
+handles, labels = ax[0].get_legend_handles_labels()
+handles = handles[::-1]
+labels = labels[::-1]
+
+ax[0].legend(handles, labels, fontsize=7, shadow=True, ncol=2,
+         loc='best')
+
+ax[0].set_xlabel('$>1\ \mu m$ Fragmentation Depth, $z$ [m]')
+ax[0].set_ylabel(r'ECDF: $P(x \leq z)$')
+
+ax[1].semilogx()
+ax[1].set_xlabel('Surface Particles Radius, $R$ [m]')
+ax[1].set_ylabel(r'ECDF: $P(x \leq R)$')
+
+gridy = np.linspace(0, 1, 11)
+gridx = [500, 1000] + [i for i in range(2000, 10000, 2000)]
+
+ax[0].set_yticks(gridy)
+ax[1].set_yticks(gridy)
+
+ax[0].grid()
+ax[1].grid()
+
+ax[0].text(5500, 0.005, r'A', fontsize=12,
+               ha='right')
+ax[1].text(1e-3, 0, r'B', fontsize=12,
+               ha='right')
+
+fig.savefig('../article_figs/ECDF_results', dpi=300,
+            facecolor=(1, 0, 0, 0))
