@@ -230,10 +230,10 @@ frag_into_NPs = np.load('../data/frag_into_NPs.npy', allow_pickle=True)[()]
 
 fig, ax = plt.subplots(1, 2, figsize=(8, 3.5), tight_layout=True)
 
-ax[0].axvline(-initial_depth, ls=':', color='k')
-ax[0].text(-initial_depth + 50, 0.05, r'Sampling Depth', fontsize=6, color='k', rotation=-90)
+ax[0].axvline(initial_depth, ls=':', color='k')
+ax[0].text(initial_depth - 200, 0.65, r'Sampling Depth', fontsize=6, color='k', rotation=-90)
 ax[0].axvline(0, ls=':', color='k')
-ax[0].text(0, 0.08, r'Surface', fontsize=6, color='k', rotation=-90)
+ax[0].text(0-200, 0.65, r'Surface', fontsize=6, color='k', rotation=-90)
 
 ax[1].axvline(1e-6, ls=':', color='black')
 ax[1].axvline(1e-4, ls=':', label=r"Fragmentation limit", color='red')
@@ -242,7 +242,7 @@ ax[1].text(1.1e-4, 0.01, r"Fragmentation Limit", fontsize=6, color='r', rotation
 
 for j, ft in enumerate(simulations[::-1]):
 
-    x, y = funk.ecdf(abs(frag_into_NPs[ft]['depths']), normalized=True,
+    x, y = funk.ecdf(frag_into_NPs[ft]['depths'], normalized=True,
                      invert=False)
     ax[0].plot(x, y, drawstyle='steps-post', label=f'$\lambda_f$ = {ft} days')
     
@@ -260,7 +260,10 @@ labels = labels[::-1]
 ax[0].legend(handles, labels, fontsize=7, shadow=True, ncol=2,
          loc='best')
 
-ax[0].set_xlabel('$>1\ \mu m$ Fragmentation Depth, $z$ [m]')
+ax[1].legend(handles, labels, fontsize=7, shadow=True, ncol=1,
+         loc='best')
+
+ax[0].set_xlabel('$R < 1\ \mu m$ Fragmentation Depth, $z$ [m]')
 ax[0].set_ylabel(r'ECDF: $P(x \leq z)$')
 
 ax[1].semilogx()
@@ -276,10 +279,10 @@ ax[1].set_yticks(gridy)
 ax[0].grid()
 ax[1].grid()
 
-ax[0].text(5500, 0.005, r'A', fontsize=12,
-               ha='right')
-ax[1].text(1e-3, 0, r'B', fontsize=12,
-               ha='right')
+# ax[0].text(-5500, 0.98, r'A', fontsize=12,
+#                ha='right')
+# ax[1].text(1e-7, 0.98, r'B', fontsize=12,
+#                ha='right')
 
-fig.savefig('../article_figs/ECDF_results', dpi=300,
+fig.savefig('../article_figs/ECDF_results2', dpi=300,
             facecolor=(1, 0, 0, 0))

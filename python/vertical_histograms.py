@@ -14,7 +14,7 @@ from tqdm import tqdm
 from datetime import datetime
 import draft_functions as funk
 
-run_for_loop = True
+run_for_loop = False
 
 # Define initial conditions
 initial_depth = -5000  # int(sys.argv[1])  # 5 # 60 # 5179
@@ -167,51 +167,6 @@ plt.show()
 fig.savefig('../article_figs/vertical_distributionsNPs.png', dpi=300,
             facecolor=(1, 0, 0, 0))
 
-# # %% Vertical Information plots
-
-# x, y = np.meshgrid(datelist, depth_bins)
-
-# fig, ax = plt.subplots(ncols=1, nrows=len(simulations), figsize=(8, 8),
-#                        sharex=True, constrained_layout=True)
-
-# color_map = cmo.algae
-
-# for j, ft in enumerate(simulations):
-#     ax[j].set_facecolor('lightgrey')
-#     im = ax[j].pcolormesh(x, y, frag_into_NPs[ft]['vertical_information'].data,
-#                           cmap=color_map)
-#     ax[j].text(18200, -1500, f'$\lambda_f$ = {ft} days', fontsize=8,
-#                ha='right')
-#     ax[j].set_yticks([-5500, -2500, 0])
-#     ax[j].grid()
-
-# ax[4].set_ylabel('Depth (m)')
-# fig.colorbar(im, ax=ax[-1], orientation='horizontal', label='Information (bits)')
-
-# ax[0].set_title('Nanoparticles (50-1000 $nm$) in the water column')
-# plt.show()
-# fig.savefig('../figs/vertical_Information.png', dpi=300,
-#             facecolor=(1, 0, 0, 0))
-
-# #%% Entropy plots   
-
-# fig = plt.figure(figsize=(6, 4))
-# ax = fig.add_subplot(111)
-# ax.grid(linestyle='--')
-# ax.set_xlabel('Time (days)')
-# ax.set_ylabel('Entropy (bits)')
-
-# for ft in simulations[::-1]:
-#     ax.plot(frag_into_NPs[ft]['entropy'], label=f'$\lambda_f$ = {ft} day')
-
-# handles, labels = ax.get_legend_handles_labels()
-# handles = handles[::-1]
-# labels = labels[::-1]
-
-# ax.legend(handles, labels)
-
-# fig.savefig('../figs/entropy.png', dpi=300,
-#             facecolor=(1, 0, 0, 0))
 
 # %% Depth vs displacement Plot
 # '-', '--', '-.', ':', 'None', ' ', '', 'solid', 'dashed', 'dashdot', 'dotted'
@@ -363,7 +318,7 @@ for j, ft in enumerate(simulations[::-1]):
 ax.scatter(origin[0], origin[1], zorder=5,
            label='Sampling Location', marker='*', s=80, edgecolors='k')
 
-for r in range(7):
+for r in range(1,10):
     circle_points = geodesic.Geodesic().circle(lon=origin[0], lat=origin[1],
                                                radius=r*1e6,
                                                n_samples=100,
@@ -377,7 +332,21 @@ handles, labels = ax.get_legend_handles_labels()
 handles = handles[::-1]
 labels = labels[::-1]
 
-ax.legend(handles, labels, shadow=True)
+ax.text(3.3, -24.5, r"$1,000$ km", fontsize=5)
+ax.text(-14.5, -30.5, r"$2,000$ km", fontsize=5, rotation=70)
+ax.text(-25., -30.5, r"$3,000$ km", fontsize=5, rotation=70)
+ax.text(-35.6, -30.5, r"$4,000$ km", fontsize=5, rotation=70)
+ax.text(-46.6, -31.5, r"$5,000$ km", fontsize=5, rotation=70)
+ax.text(-63.5, -48.5, r"$6,000$ km", fontsize=5, rotation=75)
+ax.text(-79.3, -52.5, r"$7,000$ km", fontsize=5, rotation=62)
+ax.text(-89.5, -45.3, r"$8,000$ km", fontsize=5, rotation=53)
+ax.text(-89.5, -27.3, r"$9,000$ km", fontsize=5, rotation=55)
+
+ax.set_extent([-97, 60, -65, 0], crs=ccrs.PlateCarree())
+
+ax.legend(handles, labels, ncols=3, fontsize=9, shadow=True, loc='upper left')
 
 fig.savefig('../article_figs/Map_location_fragmentation_into_NPs.png', dpi=300,
             facecolor=(1, 0, 0, 0))
+
+# %%

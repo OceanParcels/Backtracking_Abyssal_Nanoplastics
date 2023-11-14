@@ -9,7 +9,7 @@ from datetime import datetime
 from tqdm import tqdm
 import matplotlib.ticker as mticker
 
-location = 'hc11'
+location = 'hc13'
 if location == 'hc13':
     start_time = datetime.strptime('2019-01-20 12:00:00', '%Y-%m-%d %H:%M:%S')
     lat_obs = -32.171
@@ -66,7 +66,7 @@ for i, filename in enumerate(tqdm(files)):
 fields = fields[::-1]
 time = time[::-1]
 
-pset = xr.open_zarr('/storage/shared/oceanparcels/output_data/data_Claudio/hc11/hc11_0.zarr')
+pset = xr.open_zarr('/storage/shared/oceanparcels/output_data/data_Claudio/hc13_3/hc13_0.zarr')
 pset = pset.compute()
 
 fig = plt.figure(figsize=(6,7))
@@ -111,4 +111,4 @@ def animate(i):
 anim = FuncAnimation(fig, animate, frames=4480 , interval=100, blit=True, repeat=True)
 
 writergif = PillowWriter(fps=30, codec="libx264")
-anim.save(f'../article_figs/{location}_T3600_inf.gif', writer=writergif)
+anim.save(f'../article_figs/{location}_T3600_inf_new.gif', writer=writergif)
