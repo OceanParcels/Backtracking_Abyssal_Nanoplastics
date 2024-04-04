@@ -11,10 +11,16 @@ import matplotlib.ticker as mticker
 
 # Get particle simulations and reverse time
 
-pset = xr.open_zarr('/storage/shared/oceanparcels/output_data/data_Claudio/hc13_3/hc13_500.zarr')
+pset = xr.open_zarr('/storage/shared/oceanparcels/output_data/data_Claudio/hc13_3/hc13_300.zarr')
 pset = pset.compute()
 pset = pset.where(pset['z'] > 10, drop=True)
 pset = pset.reindex(obs = pset.obs[::-1])
+
+# markersize array
+NPs = pset['radius'].values < 1e-6 
+MPs = pset['radius'].values >= 1e-6
+
+markersize = MPs*10 + NPs*1 + pset['radius'].values
 
 # check start time and define it
 idx = np.where(np.isnat(pset['time'][:,0].values) == False)[0][0]
@@ -38,6 +44,7 @@ for file in files:
 
 
 files = files[start_index:end_index+1]
+n_frames = len(files)
 
 mesh_mask = xr.open_dataset('/storage/shared/oceanparcels/input_data/MOi/domain_ORCA0083-N006/coordinates.nc', decode_times=False)
 
@@ -62,7 +69,7 @@ masked_land = np.ma.masked_where(landmask==1, landmask)
 
 for i, filename in enumerate(tqdm(files)):
     T = xr.open_dataset(filename)
-    fields[i] = T['somxlavt'][:, indices['lat'], indices['lon']].values
+    fields[i] = T['sossheig'][:, indices['lat'], indices['lon']].values
     time[i] = T['time_counter'].values
 
 # %% define layout animation
@@ -76,7 +83,7 @@ t0 = 0
 ax0 = plt.subplot(gs[0])
 ax1 = plt.subplot(gs[1])
 ax1.axis('off')
-tracer = ax0.pcolormesh(lons, lats, -fields[t0], cmap='autumn', vmin=-100, vmax=0)
+tracer = ax0.pcolormesh(lons, lats, fields[t0], cmap='Blues', vmin=-1, vmax=1)
 
 ax0.pcolormesh(lons, lats, masked_land, cmap='Greys_r', vmin=-1, vmax=1)
 
@@ -87,14 +94,14 @@ ax0.set_ylabel('Latitude')
 time_str = str(time[t0])[:10]
 title = ax0.set_title(f'Date: {time_str}')
 
-particles = ax0.scatter(pset['lon'][:,t0], pset['lat'][:,t0], s=1, c=-pset['z'][:,t0], 
-                        cmap='winter', vmax=0, vmin=-2500, marker='o')
+particles = ax0.scatter(pset['lon'][:,t0], pset['lat'][:,t0], s=markersize[:,t0], c=-pset['z'][:,t0], 
+                        cmap='spring', vmax=0, vmin=-2000, marker='o')
 
 bar_ax0 = fig.add_axes([0.2, 0.25, 0.6, 0.02])
 bar_ax1 = fig.add_axes([0.2, 0.15, 0.6, 0.02])
 
 fig.colorbar(tracer, cax=bar_ax0, orientation='horizontal', 
-             label='Mixed Layer Depth [m]', extend='min')
+             label='Sea Surface Height [m]', extend='both')
 fig.colorbar(particles, cax=bar_ax1, orientation='horizontal', 
              label='Particle Depth [m]', extend='min')
 
@@ -103,14 +110,15 @@ def animate(i):
     time_str = str(time[i])[:10]
     title.set_text(f'Date: {time_str}')
     
-    tracer.set_array(-fields[i].ravel())
+    tracer.set_array(fields[i].ravel())
     particles.set_offsets(np.c_[pset['lon'][:,i], pset['lat'][:,i]])
     z = -pset['z'][:,i].values
+    particles.set_sizes(markersize[:,i])
     particles.set_array(z.ravel())
     return tracer, particles, title
 
 
-anim = FuncAnimation(fig, animate, frames=4480 , interval=100, blit=True, repeat=True)
+anim = FuncAnimation(fig, animate, frames=n_frames , interval=100, blit=True, repeat=True)
 
 writergif = PillowWriter(fps=30, codec="libx264")
-anim.save(f'../article_figs/Forward_hc11_500_MLD.gif', writer=writergif)
+anim.save(f'../article_figs/Forward_hc11_500_ssh.gif', writer=writergif)
