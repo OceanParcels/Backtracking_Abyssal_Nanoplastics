@@ -1,0 +1,20 @@
+name: abyssal_backtracking
+dependencies:
+  - python=3.9
+  - conda-forge::parcels=2.1.0
+  - cartopy
+  - numpy
+  - xarray
+  - itertools
+  - matplotlib
+  - scipy
+  - netcdf4
+  - dask
+  - datetime
+  - tqdm
+  - glob
+  - sys
+  - os
+  - cmocean
+  - pandas
+  - shapely
