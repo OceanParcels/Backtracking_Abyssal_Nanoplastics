@@ -8,7 +8,7 @@ data/
 # C extensions
 *.so
 biblio/
-article_figs/
+
 # Distribution / packaging
 .Python
 build/
@@ -136,4 +136,9 @@ updates/
 animations/
 presentations/
 *.pptx
-
+*.gif
+*.tex
+*.pdf
+.DS_Store
+data/
+*.pkl
