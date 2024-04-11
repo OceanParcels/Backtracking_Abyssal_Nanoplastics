@@ -142,3 +142,5 @@ presentations/
 .DS_Store
 data/
 *.pkl
+*.e
+*.o
