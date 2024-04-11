@@ -1,9 +1,9 @@
 """
 To run do:
-      python3 backtrack_from_sampling_locations.py _frag_timescale_ _Frag_on_
+      python3 backtrack_from_sampling_locations.py -ft 10000 -bm True
 
-frag_timescale: a number
-Frag_on: True or False
+-ft : Fragmentation timescale in days (int)
+-bm : Brownian motion on or off (boolean)
 """
 # %%
 from glob import glob
@@ -18,14 +18,23 @@ import sys
 from tqdm import tqdm
 import xarray as xr
 
+from argparse import ArgumentParser
+
 ###############################################################################
 # %%Setting up all parameters for simulation
 ###############################################################################
 
 # Control Panel for Kernels
 Test_run = False
-frag_timescale = int(sys.argv[1])
-Frag_on = sys.argv[2]
+
+arguments = ArgumentParser()
+arguments.add_argument('-ft', '--frag_timescale', type=int, default=23000, help='Fragmentation timescale (days)')
+arguments.add_argument('-bm', '--brownian_motion', type=bool, default=True, help='Brownian motion on or off (boolean)')
+
+args = arguments.parse_args()
+
+frag_timescale = args.frag_timescale
+Brownian_on = args.brownian_motion
 
 # Initial conditions
 # HC13 depth: 5000 m
@@ -56,7 +65,7 @@ if Test_run:
     n_points = 100
     sim_time = 60  # days backwards
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-                    f'data_Claudio/tests/cgrid_interp.zarr'
+                    f'data_Claudio/tests/no_brownian_01.zarr'
     
     wfiles = sorted(glob(data_path+'psy4v3r1-daily_W_2018-11-*.nc'))
     wfiles += sorted(glob(data_path+'psy4v3r1-daily_W_2018-12-*.nc'))
@@ -74,7 +83,7 @@ else:
     
     file_range = range(6, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/hc13_3/hc13_{frag_timescale}.zarr'
+        f'data_Claudio/abyssal_nps_outputs/hc13_{frag_timescale}_BM_{Brownian_on}.zarr'
     chunking_express = 500
 
 # Loading the only the files that we need.
@@ -103,7 +112,7 @@ KZfiles = [f.replace('_W_', '_KZ_') for f in wfiles]
 twoDfiles = [f.replace('_W_', '_2D_') for f in wfiles]
 
 mesh_mask = '/storage/shared/oceanparcels/input_data/MOi/' + \
-            'domain_ORCA0083-N006/coordinates.nc'
+            'domain_ORCA0083-N006/Old/coordinates.nc'
 
 filenames = {'U': {'lon': mesh_mask,
                    'lat': mesh_mask,
@@ -177,8 +186,8 @@ dimensions = {'U': {'lon': 'glamf',
 ###############################################################################
 
 # indices = {'lat': range(0, 1700), 'lon': range(200, 4321)}
-indices = {'lat': range(200, 1700), 'lon': range(2300, 4321)} # whole domain for frag timescale < 400
-# indices = {'lat': range(200, 1700)} # whole domain for frag timescale >= 400
+# indices = {'lat': range(200, 1700), 'lon': range(2300, 4321)} # domain for frag timescale < 400
+indices = {'lat': range(200, 1700)} # whole domain for frag timescale >= 400
 
 fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
                               allow_time_extrapolation=False,
@@ -202,20 +211,21 @@ fieldset.add_field(Field('Distance', coastal['dis_var'].values,
                     lat=coastal['lat'].values,
                     mesh='spherical'))
 
-# stokes_einstein eq. T= 4degC, and R =1e-8 m
-K_h = 1.56e-6 # m^2/s. molecular diffusion. 
-
-fieldset.add_field(Field('Kh_zonal', np.zeros_like(zdepth['depth_zgrid'].values) + K_h,
-                         lon=zdepth['nav_lon'].values,
-                         lat=zdepth['nav_lat'].values,
-                         mesh='spherical'))
-
-fieldset.add_field(Field('Kh_meridional', np.zeros_like(zdepth['depth_zgrid'].values) + K_h,
-                         lon=zdepth['nav_lon'].values,
-                         lat=zdepth['nav_lat'].values,
-                         mesh='spherical'))
-
 fieldset.add_constant('fragmentation_timescale', frag_timescale)
+
+if Brownian_on:
+      # stokes_einstein eq. T= 4degC, and R =1e-8 m
+      K_h = 1.56e-6 # m^2/s. molecular diffusion. 
+
+      fieldset.add_field(Field('Kh_zonal', np.zeros_like(zdepth['depth_zgrid'].values) + K_h,
+                              lon=zdepth['nav_lon'].values,
+                              lat=zdepth['nav_lat'].values,
+                              mesh='spherical'))
+
+      fieldset.add_field(Field('Kh_meridional', np.zeros_like(zdepth['depth_zgrid'].values) + K_h,
+                              lon=zdepth['nav_lon'].values,
+                              lat=zdepth['nav_lat'].values,
+                              mesh='spherical'))
 
 ###############################################################################
 # %%Particle Set #
@@ -255,11 +265,12 @@ kernels = sample_kernel + pset.Kernel(PolyTEOS10_bsq)
 kernels += pset.Kernel(kernels_simple.AdvectionRK4_3D)
 kernels += sinking_kernel
 kernels += pset.Kernel(kernels_simple.VerticalRandomWalk)
-kernels += pset.Kernel(kernels_simple.BrownianMotion2D)
 
-if Frag_on == 'True':
-      print('Fragmentation is on')
-      kernels += pset.Kernel(kernels_simple.Fragmentation)
+if Brownian_on == 'True':
+      print('Brownian motion ON')
+      kernels += pset.Kernel(kernels_simple.BrownianMotion2D)
+
+kernels += pset.Kernel(kernels_simple.Fragmentation)
 
 kernels += pset.Kernel(kernels_simple.periodicBC)
 kernels += pset.Kernel(kernels_simple.reflectiveBC_bottom)

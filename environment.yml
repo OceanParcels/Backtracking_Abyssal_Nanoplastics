@@ -1,7 +1,7 @@
 name: abyssal_backtracking
 dependencies:
   - python=3.9
-  - conda-forge::parcels=2.1.0
+  - conda-forge::parcels=2.4.2
   - cartopy
   - numpy
   - xarray
