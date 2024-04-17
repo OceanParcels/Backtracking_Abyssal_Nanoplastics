@@ -75,7 +75,7 @@ if Test_run:
     
 else:
     # Number of particles and simulation time
-    n_points = 8192 #2^13
+    n_points = 10000 #2^13
     sim_time = 4484 # 4484
     # From 11 October 2006 to and including 20 January 2019 (forward).
     # Result: 4485 days or 12 years, 3 months, 10 days including the end date.
