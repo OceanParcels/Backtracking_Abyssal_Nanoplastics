@@ -10,7 +10,7 @@ To get started with this project, you'll need to clone this repository to your l
 `git clone https://github.com/OceanParcels/Backtracking_Abyssal_Nanoplastics.git`
 
 ## List of figures with the path to script of notebook where it was created
-- Figure 1: [terminal_velocity[Range-of-validity].ipynb](terminal_velocity[Range-of-validity].ipynb)
+- Figure 1: [terminal_velocity[Range-of-validity].ipynb](analysis/terminal_velocity[Range-of-validity].ipynb)
 - Figure 2:
 - Figure 3:
 - Figure 4:
