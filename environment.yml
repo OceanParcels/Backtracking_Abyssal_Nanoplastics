@@ -1,4 +1,4 @@
-name: abyssal_backtracking
+name: abyssal-nps
 dependencies:
   - python=3.9
   - conda-forge::parcels=2.4.2
