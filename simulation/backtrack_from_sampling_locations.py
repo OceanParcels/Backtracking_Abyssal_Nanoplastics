@@ -79,7 +79,7 @@ else:
     sim_time = 4484 # 4484
     # From 11 October 2006 to and including 20 January 2019 (forward).
     # Result: 4485 days or 12 years, 3 months, 10 days including the end date.
-    end_time = datetime.strptime('2006-10-11 12:00:00', '%Y-%m-%d %H:%M:%S')
+    end_time = datetime.strptime('2007-01-01 12:00:00', '%Y-%m-%d %H:%M:%S')
     
     file_range = range(6, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
