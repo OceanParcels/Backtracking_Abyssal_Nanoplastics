@@ -9,7 +9,7 @@ To get started with this project, you'll need to clone this repository to your l
 
 `git clone https://github.com/OceanParcels/Backtracking_Abyssal_Nanoplastics.git`
 
-To able to run the scripts we recommend creating a conda environment with the package versions required. You can create a new Conda environment from an environment.yml file using the conda env create command. Here's how you can do it:
+To able to run the scripts we recommend creating a conda environment with the package versions required. You can create a new Conda environment from an [environment.yml](environment.yml) file using:
 
 `conda env create -f environment.yml`
 

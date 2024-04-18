@@ -27,14 +27,14 @@ from argparse import ArgumentParser
 # Control Panel for Kernels
 Test_run = True
 
-arguments = ArgumentParser()
-arguments.add_argument('-ft', '--frag_timescale', type=int, default=23000, help='Fragmentation timescale (days)')
-arguments.add_argument('-bm', '--brownian_motion', type=bool, default=True, help='Brownian motion on or off (boolean)')
+# arguments = ArgumentParser()
+# arguments.add_argument('-ft', '--frag_timescale', type=int, default=23000, help='Fragmentation timescale (days)')
+# arguments.add_argument('-bm', '--brownian_motion', type=bool, default=True, help='Brownian motion on or off (boolean)')
 
-args = arguments.parse_args()
+# args = arguments.parse_args()
 
-frag_timescale = args.frag_timescale
-Brownian_on = args.brownian_motion
+frag_timescale = 23000 #args.frag_timescale
+Brownian_on = True #args.brownian_motion
 
 # Initial conditions
 # HC13 depth: 5000 m
@@ -49,7 +49,9 @@ lat_sample = -32.171
 #HC13 date: '2019-01-20 12:00:00'
 #HC11 date: '2019-01-16 12:00:00'
 
-start_time = datetime.strptime('2019-01-20 12:00:00', '%Y-%m-%d %H:%M:%S')
+start_time = datetime.strptime('2011-03-09 12:00:00', '%Y-%m-%d %H:%M:%S')
+
+existing_file_name = '/storage/shared/oceanparcels/output_data/data_Claudio/abyssal_nps_outputs/hc13_23000_BM_True_lasttwo.zarr'
 
 # Particle Size and Density
 initial_particle_density = 1380  # PET & PVC kg/m3
@@ -62,16 +64,14 @@ wfiles = sorted(glob(data_path + f'psy4v3r1-daily_W_*.nc'))
 
 if Test_run:
     # Number of particles and simulation time
-    n_points = 100
-    sim_time = 60  # days backwards
+#     n_points = 100
+    sim_time = 20  # days backwards
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-                    f'data_Claudio/tests/no_brownian_01_False.zarr'
+                    f'data_Claudio/tests/restart23000file.zarr'
     
-    wfiles = sorted(glob(data_path+'psy4v3r1-daily_W_2018-11-*.nc'))
-    wfiles += sorted(glob(data_path+'psy4v3r1-daily_W_2018-12-*.nc'))
-    wfiles += sorted(glob(data_path+'psy4v3r1-daily_W_2019-01-*.nc'))
-    chunking_express = 12
-    end_time = datetime.strptime('2018-11-20 12:00:00', '%Y-%m-%d %H:%M:%S')
+    wfiles = sorted(glob(data_path+'psy4v3r1-daily_W_2011-*.nc'))
+    chunking_express = 1
+    end_time = datetime.strptime('2011-02-01 12:00:00', '%Y-%m-%d %H:%M:%S')
     
 else:
     # Number of particles and simulation time
@@ -89,17 +89,17 @@ else:
 # Loading the only the files that we need.
 # indexes are inverted because the start date is in the future.
 # it's a backwards in time simulation
-start_index = 0 
-end_index = 0
+# start_index = 0 
+# end_index = 0
 
-for file in wfiles:
-    if file[-13:-3] == start_time.strftime('%Y-%m-%d'):
-        end_index = wfiles.index(file)
+# for file in wfiles:
+#     if file[-13:-3] == start_time.strftime('%Y-%m-%d'):
+#         end_index = wfiles.index(file)
         
-    if file[-13:-3] == end_time.strftime('%Y-%m-%d'):
-        start_index = wfiles.index(file)
+#     if file[-13:-3] == end_time.strftime('%Y-%m-%d'):
+#         start_index = wfiles.index(file)
     
-wfiles = wfiles[start_index:end_index+1]
+# wfiles = wfiles[start_index:end_index+1]
 
 ###############################################################################
 # %%Reading files #
@@ -213,7 +213,7 @@ fieldset.add_field(Field('Distance', coastal['dis_var'].values,
 
 fieldset.add_constant('fragmentation_timescale', frag_timescale)
 
-if Brownian_on == True:
+if Brownian_on:
       # stokes_einstein eq. T= 4degC, and R =1e-8 m
       K_h = 1.56e-6 # m^2/s. molecular diffusion. 
 
@@ -230,35 +230,24 @@ if Brownian_on == True:
 ###############################################################################
 # %%Particle Set #
 ###############################################################################
+# Initialise the ParticleSet from a zarr ParticleFile. This creates a new 
+# ParticleSet based on locations of all particles written in a zarr ParticleFile 
+# at a certain time. Particle IDs are preserved if restart=True
 
-np.random.seed(42)
-lon_cluster = [lon_sample]*n_points + np.random.normal(loc=0, scale=0.01, size=n_points)
-lat_cluster = [lat_sample]*n_points + np.random.normal(loc=0, scale=0.01, size=n_points)
-lon_cluster = np.array(lon_cluster) 
-lat_cluster = np.array(lat_cluster)
-
-depth_cluster = np.ones(n_points)*initial_depth  # meters
-date_cluster = [start_time]*n_points
-initial_radius = np.zeros_like(lon_cluster) + np.random.uniform(5e-9, 5e-7, n_points)
-initial_densities = np.zeros_like(lon_cluster) + initial_particle_density
-
-pset = ParticleSet.from_list(fieldset=fieldset, pclass=kernels_simple.PlasticParticle,
-                             lon=lon_cluster,
-                             lat=lat_cluster,
-                             depth=depth_cluster,
-                             time=date_cluster,
-                             radius=initial_radius,
-                             particle_density=initial_densities)
+# start_time = datetime.strptime('2011-11-01 12:00:00', '%Y-%m-%d %H:%M:%S')
+pset = ParticleSet.from_particlefile(fieldset=fieldset, pclass=kernels_simple.PlasticParticle,
+                             filename=existing_file_name)
+                        #      restarttime=start_time)
 
 ###############################################################################
 # %%Kernels #
 ###############################################################################
 # Sampling first timestep
 sample_kernel = pset.Kernel(kernels_simple.SampleField)
-pset.execute(sample_kernel, dt=0)
-pset.execute(pset.Kernel(PolyTEOS10_bsq), dt=0)
+# pset.execute(sample_kernel, dt=0)
+# pset.execute(pset.Kernel(PolyTEOS10_bsq), dt=0)
 sinking_kernel = pset.Kernel(kernels_simple.SinkingVelocity)
-pset.execute(sinking_kernel, dt=0)
+# pset.execute(sinking_kernel, dt=0)
 
 # Loading kernels
 kernels = sample_kernel + pset.Kernel(PolyTEOS10_bsq)
@@ -280,8 +269,7 @@ print('Kernels loaded')
 
 # Output file
 output_file = pset.ParticleFile(name=output_path,
-                                outputdt=timedelta(days=1),
-                               chunks=(n_points, chunking_express))
+                                outputdt=timedelta(days=1))
 
 pset.execute(kernels,
              output_file=output_file,
@@ -290,3 +278,5 @@ pset.execute(kernels,
              recovery={ErrorCode.ErrorOutOfBounds: kernels_simple.delete_particle})
 
 output_file.close()
+
+# %%

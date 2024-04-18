@@ -11,7 +11,7 @@ import matplotlib.ticker as mticker
 
 # Get particle simulations and reverse time
 
-pset = xr.open_zarr('/storage/shared/oceanparcels/output_data/data_Claudio/hc13_3/hc13_300.zarr')
+pset = xr.open_zarr('/storage/shared/oceanparcels/output_data/data_Claudio/hc13_3/hc13_100.zarr')
 pset = pset.compute()
 pset = pset.where(pset['z'] > 10, drop=True)
 pset = pset.reindex(obs = pset.obs[::-1])
@@ -25,13 +25,13 @@ markersize = MPs*10 + NPs*1 + pset['radius'].values
 # check start time and define it
 idx = np.where(np.isnat(pset['time'][:,0].values) == False)[0][0]
 aux = pset['time'][idx, 0].values
-start_time = datetime.utcfromtimestamp(int(aux)/1e9)
+start_time = datetime.strptime('2006-10-11 12:00:00', '%Y-%m-%d %H:%M:%S') # datetime.utcfromtimestamp(int(aux)/1e9)
 
 # Mixed layer depth data
 path_flow = '/storage/shared/oceanparcels/input_data/MOi/psy4v3r1/'
-files = sorted(glob(path_flow + 'psy4v3r1-daily_2D_*.nc'))
+files = sorted(glob(path_flow + 'psy4v3r1-daily_U_*.nc'))
 
-end_time = datetime.strptime('2019-01-16 12:00:00', '%Y-%m-%d %H:%M:%S')
+end_time = datetime.strptime('2007-07-16 12:00:00', '%Y-%m-%d %H:%M:%S')
 start_index = 0 
 end_index = 0
 
@@ -46,7 +46,7 @@ for file in files:
 files = files[start_index:end_index+1]
 n_frames = len(files)
 
-mesh_mask = xr.open_dataset('/storage/shared/oceanparcels/input_data/MOi/domain_ORCA0083-N006/coordinates.nc', decode_times=False)
+mesh_mask = xr.open_dataset('/storage/shared/oceanparcels/input_data/MOi/domain_ORCA0083-N006/Old/coordinates.nc', decode_times=False)
 
 indices = {'lat': range(600, 1350), 'lon': range(3100, 4000)}
 
@@ -63,13 +63,13 @@ lons -= lons[0,0] - lons[0,1]
 
 indices = {'lat': range(600, 1350), 'lon': range(3100, 4000)}
 
-bathy_moi = xr.load_dataset('/storage/shared/oceanparcels/input_data/MOi/domain_ORCA0083-N006/bathymetry_ORCA12_V3.3.nc')
+bathy_moi = xr.load_dataset('/storage/shared/oceanparcels/input_data/MOi/domain_ORCA0083-N006/Old/bathymetry_ORCA12_V3.3.nc')
 landmask = bathy_moi['mask'][indices['lat'], indices['lon']]
 masked_land = np.ma.masked_where(landmask==1, landmask)
 
 for i, filename in enumerate(tqdm(files)):
     T = xr.open_dataset(filename)
-    fields[i] = T['sossheig'][:, indices['lat'], indices['lon']].values
+    fields[i] = T['vozocrtx'][0, indices['lat'], indices['lon']].values
     time[i] = T['time_counter'].values
 
 # %% define layout animation
@@ -121,4 +121,4 @@ def animate(i):
 anim = FuncAnimation(fig, animate, frames=n_frames , interval=100, blit=True, repeat=True)
 
 writergif = PillowWriter(fps=30, codec="libx264")
-anim.save(f'../article_figs/Forward_hc11_500_ssh.gif', writer=writergif)
+anim.save(f'../article_figs/Forward_2006-2007-100.gif', writer=writergif)

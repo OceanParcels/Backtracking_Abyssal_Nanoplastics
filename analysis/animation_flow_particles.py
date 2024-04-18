@@ -11,7 +11,8 @@ import matplotlib.ticker as mticker
 
 location = 'hc13'
 if location == 'hc13':
-    start_time = datetime.strptime('2019-01-20 12:00:00', '%Y-%m-%d %H:%M:%S')
+    # start_time = datetime.strptime('2019-01-20 12:00:00', '%Y-%m-%d %H:%M:%S')
+    start_time = datetime.strptime('2007-07-20 12:00:00', '%Y-%m-%d %H:%M:%S')
     lat_obs = -32.171
     lon_obs = 6.287
 
