@@ -93,7 +93,7 @@ for ft in simulations:
     
 
 df.to_csv('../data/size_distribution_surface.csv')
-df.to_latex('../article_figs/surface_events_numbers.tex') # to print in latex format and save in a file
+# df.to_latex('../article_figs/surface_events_numbers.tex') # to print in latex format and save in a file
 
 # %% ecdf surfacetime and size distribution of particles at the surface
 
@@ -222,7 +222,7 @@ ax.text(-89.5, -27.3, r"$9,000$ km", fontsize=5, rotation=55)
 ax.set_extent([-97, 65, -63, 0], crs=ccrs.PlateCarree())
 
 ax.legend(handles, labels, ncols=3, fontsize=9, shadow=True) 
-fig.savefig('../article_figs/Map_location_surface.png', dpi=300,
+fig.savefig('../article_figs/Figure3.png', dpi=300,
             facecolor=(1, 0, 0, 0))
 
 # %% Results ECDF
@@ -284,5 +284,67 @@ ax[1].grid()
 # ax[1].text(1e-7, 0.98, r'B', fontsize=12,
 #                ha='right')
 
-fig.savefig('../article_figs/ECDF_results2', dpi=300,
+# fig.savefig('../article_figs/ECDFs2.png', dpi=300,
+#             facecolor=(1, 0, 0, 0))
+# %% FIGURE 6 -
+fig, ax = plt.subplots(1, 1, figsize=(4, 3.5), tight_layout=True)
+
+ax.axvline(initial_depth, ls=':', color='k')
+ax.text(initial_depth - 200, 0.65, r'Sampling Depth', fontsize=6, color='k', rotation=-90)
+ax.axvline(0, ls=':', color='k')
+ax.text(0-200, 0.65, r'Surface', fontsize=6, color='k', rotation=-90)
+
+for j, ft in enumerate(simulations[::-1]):
+    x, y = funk.ecdf(frag_into_NPs[ft]['depths'], normalized=True,
+                     invert=False)
+    ax.plot(x, y, drawstyle='steps-post', label=f'$\lambda_f$ = {ft} days')
+    
+handles, labels = ax.get_legend_handles_labels()
+handles = handles[::-1]
+labels = labels[::-1]
+
+ax.legend(handles, labels, fontsize=7, shadow=True, ncol=2,
+            loc='best')
+
+ax.set_xlabel('$R < 1\ \mu m$ Fragmentation Depth, $z$ [m]')
+ax.set_ylabel(r'ECDF: $P(x \leq z)$')
+
+gridy = np.linspace(0, 1, 11)
+ax.set_yticks(gridy)
+ax.grid()
+
+fig.savefig('../article_figs/Figure6.png', dpi=300,
             facecolor=(1, 0, 0, 0))
+
+# %% FIGURE 4 -
+
+fig, ax = plt.subplots(1, 1, figsize=(4, 3.5), tight_layout=True)
+
+ax.axvline(1e-6, ls=':', color='black')
+ax.axvline(1e-4, ls=':', color='red')
+ax.text(1e-6, 0.08, r"1 $\mu m$ Limit", fontsize=6, color='k', rotation=-90)
+ax.text(1.1e-4, 0.01, r"Fragmentation Limit", fontsize=6, color='r', rotation=-90)
+
+for j, ft in enumerate(simulations[::-1]):
+    x, y = funk.ecdf(surface_events[ft]['radius'], normalized=True)
+    ax.plot(x, y, drawstyle='steps-post', label=f'$\lambda_f$ = {ft} days')
+    
+handles, labels = ax.get_legend_handles_labels()
+handles = handles[::-1]
+labels = labels[::-1]
+
+ax.legend(handles, labels, fontsize=7, shadow=True, ncol=1,
+            loc='best')
+
+ax.semilogx()
+ax.set_xlabel('Surface Particles Radius, $R$ [m]')
+ax.set_ylabel(r'ECDF: $P(x \leq R)$')
+
+gridy = np.linspace(0, 1, 11)
+ax.set_yticks(gridy)
+ax.grid()
+
+fig.savefig('../article_figs/Figure4.png', dpi=300,
+            facecolor=(1, 0, 0, 0))
+
+# %%

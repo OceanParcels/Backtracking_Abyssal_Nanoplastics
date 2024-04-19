@@ -1,3 +1,4 @@
+
 #%% Importing necessary libraries
 from glob import glob
 import numpy as np
@@ -138,7 +139,7 @@ for ft in simulations:
 df.to_csv('../article_figs/stats_frag_into_NPs.csv')
 # df.to_latex('../article_figs/frag_into_NPS_table.tex') # to print in latex format and save in a file
 
-# %% Vertical distributions plots
+# %% Figure 5 - Vertical distributions plots
 
 x, y = np.meshgrid(datelist, depth_bins)
 
@@ -164,7 +165,7 @@ fig.colorbar(im, ax=ax[-1], orientation='horizontal',
 
 # ax[0].set_title('Nanoparticles (50-1000 $nm$) in the water column')
 plt.show()
-fig.savefig('../article_figs/vertical_distributionsNPs.png', dpi=300,
+fig.savefig('../article_figs/Figure5.png', dpi=300,
             facecolor=(1, 0, 0, 0))
 
 
@@ -304,8 +305,7 @@ ax[2].text(7500, 0, r'C', fontsize=12,
 fig.savefig('../article_figs/ECDF_nanoparticles', dpi=300,
             facecolor=(1, 0, 0, 0))
 
-
-# %% Maps of fragmenting location
+# %% FIGURE S2 - Maps of fragmenting location
 marker = itertools.cycle(('v', 'h', 'd', 'o', 'X', 'P', '^', 's'))
 fig, ax = funk.bathymetry_plot(alpha=0.1)
 
@@ -346,7 +346,7 @@ ax.set_extent([-97, 60, -65, 0], crs=ccrs.PlateCarree())
 
 ax.legend(handles, labels, ncols=3, fontsize=9, shadow=True, loc='upper left')
 
-fig.savefig('../article_figs/Map_location_fragmentation_into_NPs.png', dpi=300,
+fig.savefig('../article_figs/FigureS2.png', dpi=300,
             facecolor=(1, 0, 0, 0))
 
 # %%
