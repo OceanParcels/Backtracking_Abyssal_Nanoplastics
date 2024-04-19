@@ -17,7 +17,9 @@ To able to run the scripts we recommend creating a conda environment with the pa
 The script to run the parcels simulation it is found in `simulation/`. There you will see the following files:
 1. [`backtrack_from_sampling_locations.py`](simulation/backtrack_from_sampling_locations.py): The parcels simulation script.
 2. [`kernels_simple.py`](simulation/backtrack_from_sampling_locations.py): The kernels used in parcels simulation.
-3. [`submit-3DMSA.sh`](simulation/submit-3DMSA.sh): sbatch script to submit simuation to supercomputer.
+3. [`backtrack_from_existing_file.py`](simulation/backtrack_from_existing_file.py): Parcels script to submit simulation from unfinished simulation due to TIMEOUTs.
+4. [`submit-3DMSA.sh`](simulation/submit-3DMSA.sh): sbatch script to submit simulation to supercomputer.
+5. [`stitch_together_output_files.ipynb`](simulation/stitch_together_output_files.ipynb): notebook to concatenate the output files of simulations that got interrupted.
 
 The scripts to run the analysis are located in `analysis/`, showing the following files:
 4. ...

@@ -25,11 +25,11 @@ from argparse import ArgumentParser
 ###############################################################################
 
 # Control Panel for Kernels
-Test_run = True
+Test_run = False
 
 arguments = ArgumentParser()
 arguments.add_argument('-ft', '--frag_timescale', type=int, default=23000, help='Fragmentation timescale (days)')
-arguments.add_argument('-bm', '--brownian_motion', type=bool, default=True, help='Brownian motion on or off (boolean)')
+arguments.add_argument('-bm', '--brownian_motion', type=int, help='Brownian motion on (1) or off (0)')
 
 args = arguments.parse_args()
 
@@ -65,7 +65,7 @@ if Test_run:
     n_points = 100
     sim_time = 60  # days backwards
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-                    f'data_Claudio/tests/no_brownian_01_False.zarr'
+                    f'data_Claudio/tests/no_brownian_01_bm_{Brownian_on}.zarr'
     
     wfiles = sorted(glob(data_path+'psy4v3r1-daily_W_2018-11-*.nc'))
     wfiles += sorted(glob(data_path+'psy4v3r1-daily_W_2018-12-*.nc'))
@@ -86,6 +86,7 @@ else:
         f'data_Claudio/abyssal_nps_outputs/hc13_{frag_timescale}_BM_{Brownian_on}.zarr'
     chunking_express = 500
 
+print(output_path, Brownian_on)
 # Loading the only the files that we need.
 # indexes are inverted because the start date is in the future.
 # it's a backwards in time simulation
@@ -213,7 +214,7 @@ fieldset.add_field(Field('Distance', coastal['dis_var'].values,
 
 fieldset.add_constant('fragmentation_timescale', frag_timescale)
 
-if Brownian_on == True:
+if Brownian_on == 1:
       # stokes_einstein eq. T= 4degC, and R =1e-8 m
       K_h = 1.56e-6 # m^2/s. molecular diffusion. 
 
@@ -266,7 +267,7 @@ kernels += pset.Kernel(kernels_simple.AdvectionRK4_3D)
 kernels += sinking_kernel
 kernels += pset.Kernel(kernels_simple.VerticalRandomWalk)
 
-if Brownian_on == 'True':
+if Brownian_on == 1:
       print('Brownian motion ON')
       kernels += pset.Kernel(kernels_simple.BrownianMotion2D)
 

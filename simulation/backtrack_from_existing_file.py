@@ -1,6 +1,6 @@
 """
 To run do:
-      python3 backtrack_from_sampling_locations.py -ft 10000 -bm True
+      python3 backtrack_from_sampling_locations.py -ft 10000 -bm 1
 
 -ft : Fragmentation timescale in days (int)
 -bm : Brownian motion on or off (boolean)
@@ -29,7 +29,7 @@ Test_run = False
 
 arguments = ArgumentParser()
 arguments.add_argument('-ft', '--frag_timescale', type=int, default=23000, help='Fragmentation timescale (days)')
-arguments.add_argument('-bm', '--brownian_motion', type=bool, default=True, help='Brownian motion on or off (boolean)')
+arguments.add_argument('-bm', '--brownian_motion', type=int, help='Brownian motion on (1) or off (0)')
 
 args = arguments.parse_args()
 
@@ -38,10 +38,10 @@ Brownian_on = args.brownian_motion
 
 # You need to save the last two steps in a file and load it here, because the function from_particlefile does not 
 # support backtracking
-existing_file_name = '/storage/shared/oceanparcels/output_data/data_Claudio/abyssal_nps_outputs/hc13_23000_BM_True_lasttwo.zarr'
+existing_file_name = '/storage/shared/oceanparcels/output_data/data_Claudio/abyssal_nps_outputs/hc13_25000_BM_False_lasttwo.zarr'
 
 # insert this manually. It's only used for loading the filedsets. Leave a month as buffer
-start_time = datetime.strptime('2011-04-01 12:00:00', '%Y-%m-%d %H:%M:%S')
+start_time = datetime.strptime('2012-11-21 12:00:00', '%Y-%m-%d %H:%M:%S')
 
 # Particle Size and Density
 initial_particle_density = 1380  # PET & PVC kg/m3
@@ -75,6 +75,9 @@ else:
     output_path = '/storage/shared/oceanparcels/output_data/' + \
         f'data_Claudio/abyssal_nps_outputs/hc13_{frag_timescale}_BM_{Brownian_on}_part2.zarr'
     chunking_express = 500
+
+
+print(output_path, Brownian_on)
 
 # Loading the only the files that we need.
 # indexes are inverted because the start date is in the future.
@@ -203,7 +206,7 @@ fieldset.add_field(Field('Distance', coastal['dis_var'].values,
 
 fieldset.add_constant('fragmentation_timescale', frag_timescale)
 
-if Brownian_on:
+if Brownian_on == 1:
       # stokes_einstein eq. T= 4degC, and R =1e-8 m
       K_h = 1.56e-6 # m^2/s. molecular diffusion. 
 
@@ -240,7 +243,7 @@ kernels += pset.Kernel(kernels_simple.AdvectionRK4_3D)
 kernels += sinking_kernel
 kernels += pset.Kernel(kernels_simple.VerticalRandomWalk)
 
-if Brownian_on == 'True':
+if Brownian_on == 1:
       print('Brownian motion ON')
       kernels += pset.Kernel(kernels_simple.BrownianMotion2D)
 
