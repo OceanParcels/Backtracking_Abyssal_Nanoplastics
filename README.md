@@ -18,7 +18,7 @@ The script to run the parcels simulation it is found in `simulation/`. There you
 1. [`backtrack_from_sampling_locations.py`](simulation/backtrack_from_sampling_locations.py): The parcels simulation script.
 2. [`kernels_simple.py`](simulation/backtrack_from_sampling_locations.py): The kernels used in parcels simulation.
 3. [`backtrack_from_existing_file.py`](simulation/backtrack_from_existing_file.py): Parcels script to submit simulation from unfinished simulation due to TIMEOUTs.
-4. [`submit-3DMSA.sh`](simulation/submit-3DMSA.sh): sbatch script to submit simulation to supercomputer.
+4. [`submit-abyssal-backtrack.sh`](simulation/submit-abyssal-backtrack.sh): sbatch script to submit simulation to supercomputer.
 5. [`stitch_together_output_files.ipynb`](simulation/stitch_together_output_files.ipynb): notebook to concatenate the output files of simulations that got interrupted.
 
 The scripts to run the analysis are located in `analysis/`, showing the following files:
@@ -27,7 +27,7 @@ The scripts to run the analysis are located in `analysis/`, showing the followin
 
 ## List of figures with the path to script of notebook where it was created
 - Figure 1: [terminal_velocity[Range-of-validity].ipynb](analysis/terminal_velocity[Range-of-validity].ipynb)
-- Figure 2: Not in repository. It was designed in specialized software.
+- Figure 2: Not in repository. It was made in specialized software.
 - Figure 3: 
 - Figure 4:
 - Figure 5:
