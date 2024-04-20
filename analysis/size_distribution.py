@@ -11,6 +11,7 @@ from tqdm import tqdm
 from datetime import datetime
 import analysis_functions as funk
 import cartopy.feature as cfeature
+from cycler import cycler
 
 # %%
 initial_depth = -5100  # int(sys.argv[1])  # 5 # 60 # 5179
@@ -24,8 +25,8 @@ sim_time = 4484
 datelist = pd.date_range(end=start_time, periods=sim_time)[::-1]
 end_time = datelist[0]
 
-simulations = [10] + [i for i in range(100, 501, 100)]
-simulations += [1000, 10000]
+# simulations = [10] + [i for i in range(100, 501, 100)]
+simulations = [1000, 10000, 23000]
 
 # %% Extracting the data from simulation outputs
 surface_events = {}
@@ -167,7 +168,7 @@ fig.savefig('../article_figs/ECDF_surface', dpi=300,
             facecolor=(1, 0, 0, 0))
 
 
-# %% Supporting map of the distributions
+# %% FIGURE 3 - Supporting map of the distributions
 marker = itertools.cycle(('v', 'h', 'd', 'o', 'X', 'P', '^', 's'))
 
 fig,ax = plt.subplots(figsize=(10,8),
@@ -294,6 +295,11 @@ ax.text(initial_depth - 200, 0.65, r'Sampling Depth', fontsize=6, color='k', rot
 ax.axvline(0, ls=':', color='k')
 ax.text(0-200, 0.65, r'Surface', fontsize=6, color='k', rotation=-90)
 
+colors = plt.get_cmap('tab10').colors
+line_styles = ['-', '--', '-.', ':']
+
+ax.set_prop_cycle(cycler(color=colors[:4]) + cycler(linestyle=line_styles))
+
 for j, ft in enumerate(simulations[::-1]):
     x, y = funk.ecdf(frag_into_NPs[ft]['depths'], normalized=True,
                      invert=False)
@@ -303,7 +309,7 @@ handles, labels = ax.get_legend_handles_labels()
 handles = handles[::-1]
 labels = labels[::-1]
 
-ax.legend(handles, labels, fontsize=7, shadow=True, ncol=2,
+ax.legend(handles, labels, fontsize=7, shadow=True, ncol=1,
             loc='best')
 
 ax.set_xlabel('$R < 1\ \mu m$ Fragmentation Depth, $z$ [m]')
@@ -324,6 +330,11 @@ ax.axvline(1e-6, ls=':', color='black')
 ax.axvline(1e-4, ls=':', color='red')
 ax.text(1e-6, 0.08, r"1 $\mu m$ Limit", fontsize=6, color='k', rotation=-90)
 ax.text(1.1e-4, 0.01, r"Fragmentation Limit", fontsize=6, color='r', rotation=-90)
+
+colors = plt.get_cmap('tab10').colors
+line_styles = ['-', '--', '-.', ':']
+
+ax.set_prop_cycle(cycler(color=colors[:4]) + cycler(linestyle=line_styles))
 
 for j, ft in enumerate(simulations[::-1]):
     x, y = funk.ecdf(surface_events[ft]['radius'], normalized=True)
@@ -348,3 +359,24 @@ fig.savefig('../article_figs/Figure4.png', dpi=300,
             facecolor=(1, 0, 0, 0))
 
 # %%
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import kde
+
+# Assuming `x` and `y` are your data points
+x, y = np.random.normal(size=(2, 1000))
+
+# Perform a kernel density estimate on the data
+k = kde.gaussian_kde([x, y])
+xi, yi = np.mgrid[x.min():x.max():100j, y.min():y.max():100j]
+zi = k(np.vstack([xi.flatten(), yi.flatten()]))
+
+# Find density level that includes 90% of the particles
+zi_sorted = np.sort(zi.flatten())
+cumulative_zi = np.cumsum(zi_sorted)
+level = zi_sorted[np.where(cumulative_zi >= cumulative_zi[-1] * 0.9)[0][0]]
+
+# Plot contours at this density level
+plt.contour(xi, yi, zi.reshape(xi.shape), levels=[level])
+
+plt.show()

@@ -15,14 +15,14 @@ from tqdm import tqdm
 from datetime import datetime
 import analysis_functions as funk
 
-run_for_loop = False
+run_for_loop = True
 
 # Define initial conditions
 initial_depth = -5000  # int(sys.argv[1])  # 5 # 60 # 5179
 lon_sample = 6.287  # 6.25
 lat_sample = -32.171  # -32.171
 origin = (lon_sample, lat_sample)
-sim_time = 4484
+sim_time = 4403
 # Set simulation time range
 start_time = datetime.strptime('2019-01-20 12:00:00', '%Y-%m-%d %H:%M:%S')
 
@@ -30,8 +30,8 @@ datelist = pd.date_range(end=start_time, periods=sim_time+1)[::-1]
 end_time = datelist[0]
 
 # Define simulation fragmentation timescales
-simulations = [10] + [i for i in range(100, 501, 100)]
-simulations += [1000, 10000]
+# simulations = [10] + [i for i in range(100, 501, 100)]
+simulations = [500, 1000, 10000, 23000]
 # Set depth bins for histograms
 depth_bins = np.linspace(-5500, 0, 56)  # creates a 100m bins
 
@@ -48,6 +48,7 @@ if run_for_loop:
         # Load the data from the simulation
         local_path = f'/storage/shared/oceanparcels/output_data/data_Claudio/hc13_3/hc13_{ft}.zarr'
         sim = xr.open_zarr(local_path)
+        sim = sim.where(sim.time >= np.datetime64('2007-01-01'), drop=True) # analysis stops at 2007-01-01
         nano = sim.where(sim.radius < 1e-6/2, drop=False)
         
         # Find indices of the particles that are not NaN
@@ -143,7 +144,7 @@ df.to_csv('../article_figs/stats_frag_into_NPs.csv')
 
 x, y = np.meshgrid(datelist, depth_bins)
 
-fig, ax = plt.subplots(ncols=1, nrows=len(simulations), figsize=(8, 8),
+fig, ax = plt.subplots(ncols=1, nrows=len(simulations), figsize=(8, 5),
                        sharex=True, constrained_layout=True)
 
 color_map = cmo.matter_r
@@ -158,7 +159,7 @@ for j, ft in enumerate(simulations):
     ax[j].set_yticks([-5500, -2500, 0])
     ax[j].grid()
 
-ax[4].set_ylabel('Depth (m)')
+ax[1].set_ylabel('Depth (m)')
 
 fig.colorbar(im, ax=ax[-1], orientation='horizontal',
              extend='max', label='Depth Probability of Nanoplastics')
@@ -173,7 +174,7 @@ fig.savefig('../article_figs/Figure5.png', dpi=300,
 # '-', '--', '-.', ':', 'None', ' ', '', 'solid', 'dashed', 'dashdot', 'dotted'
 marker = itertools.cycle(('v', 'h', 'd', 'o', 'X', 'P', '^', 's'))
 
-fig = plt.figure(figsize=(8, 8))
+fig = plt.figure(figsize=(8, 4))
 gs = GridSpec(2, 2, width_ratios=[4, 1], height_ratios=[1, 4], wspace=0.01,
               hspace=0.01)
 
@@ -252,10 +253,10 @@ for j, ft in enumerate(simulations[::-1]):
     x, y = funk.ecdf(frag_into_NPs[ft]['particle_index'], normalized=True,
                      invert=False)
     
-    if ft == 10000 or ft == 1000:
-        ax[1].plot(x[:-1], y[:-1], drawstyle='steps-post')
-    else:
-        ax[1].plot(x, y, drawstyle='steps-post')
+    # if ft == 10000 or ft == 1000:
+    ax[1].plot(x[:-1], y[:-1], drawstyle='steps-post')
+    # else:
+    #     ax[1].plot(x, y, drawstyle='steps-post')
     
     x, y = funk.ecdf(frag_into_NPs[ft]['displacement']/1e3, normalized=True,
                      invert=False)

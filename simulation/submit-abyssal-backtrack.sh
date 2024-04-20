@@ -1,6 +1,6 @@
 #!/bin/bash -l
 #
-#SBATCH -J abybak           # the name of your job   
+#SBATCH -J aby25           # the name of your job   
 #SBATCH -p normal           # request normal partition, job takes > 1 hour (this line can also be left out because 'normal' is the default)  
 #SBATCH -t 120:00:00         # time in hh:mm:ss you want to reserve for the job
 #SBATCH -n 1               # the number of cores you want to use for the job, SLURM automatically determines how many nodes are needed
@@ -16,15 +16,8 @@ cd ${HOME}/3DModelling_SouthAtlantic/simulation
 
 # first agument is the fragmentation timescale (int) second argument is the boolean for the fragmentation kernel
 
-python3 backtrack_from_sampling_locations.py -ft 23000 -bm 1 &
-sleep 15
-python3 backtrack_from_existing_file.py -ft 25000 -bm 0
-
+python3 backtrack_from_sampling_locations.py -ft 25000 -bm 1
 # sleep 15
-# python3 backtrack_from_sampling_locations.py -ft 23169 -bm False &
-# sleep 15
-# python3 backtrack_from_sampling_locations.py -ft 19430 -bm False &
-# sleep 15
-# python3 backtrack_from_sampling_locations.py -ft 25170 -bm False 
+# python3 backtrack_from_existing_file.py -ft 25000 -bm 0
 
 echo 'Finished computation.'
