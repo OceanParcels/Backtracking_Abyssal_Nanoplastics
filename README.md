@@ -4,7 +4,7 @@ This repository contains code for the Lagrangian simulations and the analysis fo
 
 ## Getting Started
 
-To get started with this project, you'll need to clone this repository to your local machine. You can do this by running the following command in your terminal:
+To reproduce the simulations and the analysis, you will need to clone this repository to your local machine. You can do this by running the following command in your terminal:
 
 
 `git clone https://github.com/OceanParcels/Backtracking_Abyssal_Nanoplastics.git`
@@ -26,10 +26,10 @@ List of most important scripts with a short description.
 
 #### [Analysis](analysis/)
 1. [`analysis_functions.py`](analysis\analysis_functions.py): functions used across analysis scripts.
-2. [`size_distribution.py`](analysis/size_distribution.py):
-3. [`supplemnetary_material_plots.ipynb`](analysis/supplementary_material_plots.ipynb):
-4. [`terminal_velocity[Range-of-validity].ipynb`](analysis/terminal_velocity[Range-of-validity].ipynb):
-5. [`vertical_histograms.py`](analysis/vertical_histograms.py): 
+2. [`size_distribution.py`](analysis/size_distribution.py): computes the size distributions at the surface and also plots the distribution and locations at the surface when they started to sink.
+3. [`supplemnetary_material_plots.ipynb`](analysis/supplementary_material_plots.ipynb): Notebook to analyze the simulations which considered three maximum size classes $k$.
+4. [`terminal_velocity[Range-of-validity].ipynb`](analysis/terminal_velocity[Range-of-validity].ipynb): Notebook analyzing the terminal velocity for different sizes of PET plastic particles in the ocean.
+5. [`vertical_histograms.py`](analysis/vertical_histograms.py): Vertical transport analysis of the backwards-in-time trajectories. Also it shows the depth at which particles become nanoplastics.
 6. [`vertical_Kz_profiles.py`](analysis/vertical_Kz_profiles.py): sample the Kz field and compute a simple climatology.
 
 #### [Animations](animations/)
