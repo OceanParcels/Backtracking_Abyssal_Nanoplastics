@@ -26,7 +26,7 @@ datelist = pd.date_range(end=start_time, periods=sim_time)[::-1]
 end_time = datelist[0]
 
 # simulations = [10] + [i for i in range(100, 501, 100)]
-simulations = [1000, 10000, 23000]
+simulations = [500, 1000, 10000, 23000]
 
 # %% Extracting the data from simulation outputs
 surface_events = {}
