@@ -31,7 +31,7 @@ end_time = datelist[0]
 
 # Define simulation fragmentation timescales
 # simulations = [10] + [i for i in range(100, 501, 100)]
-simulations = [500, 1000, 10000, 23000]
+simulations = [100, 1000, 10000, 23000]
 # Set depth bins for histograms
 depth_bins = np.linspace(-5500, 0, 56)  # creates a 100m bins
 
