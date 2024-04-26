@@ -168,64 +168,6 @@ fig.savefig('../article_figs/ECDF_surface', dpi=300,
             facecolor=(1, 0, 0, 0))
 
 
-# %% FIGURE 3 - Supporting map of the distributions
-marker = itertools.cycle(('v', 'h', 'd', 'o', 'X', 'P', '^', 's'))
-
-fig,ax = plt.subplots(figsize=(10,8),
-                      subplot_kw={'projection': ccrs.PlateCarree()}, constrained_layout=True)
-
-gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
-                  linewidth=1, color='black', alpha=0.3, linestyle=':')
-gl.top_labels = False
-gl.right_labels = False
-gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
-                  linewidth=0.5, color='black', alpha=0.5, linestyle='--')
-gl.top_labels = False
-gl.right_labels = False
-
-# ax.set_extent([0, 40,-60.916664, -20], crs=ccrs.PlateCarree())
-
-# ax.add_feature(cfeature.OCEAN)
-ax.add_feature(cfeature.LAND, zorder=1, color='black')
-# ax.add_feature(cfeature.COASTLINE)
-
-for j, ft in enumerate(simulations[::-1]):
-    ax.scatter(surface_events[ft]['lon'], surface_events[ft]['lat'],
-               zorder=2, s=20,
-               label=f"$\lambda_f$ = {ft} days", marker=next(marker))
-
-ax.scatter(origin[0], origin[1], zorder=5,
-           label='Sampling Location', marker='*', s=100, edgecolors='black')
-
-for r in range(1, 10):
-    circle_points = geodesic.Geodesic().circle(lon=origin[0], lat=origin[1],
-                                               radius=r*1e6,
-                                               n_samples=360,
-                                               endpoint=False)
-    geom = shapely.geometry.Polygon(circle_points)
-    ax.add_geometries((geom,), crs=ccrs.PlateCarree(), facecolor='none',
-                      edgecolor='black', linewidth=1., zorder=3, ls='--',
-                      label=f'{r} km')
-    
-handles, labels = ax.get_legend_handles_labels()
-handles = handles[::-1]
-labels = labels[::-1]
-
-ax.text(3.3, -24.5, r"$1,000$ km", fontsize=5)
-ax.text(-14.5, -30.5, r"$2,000$ km", fontsize=5, rotation=70)
-ax.text(-25., -30.5, r"$3,000$ km", fontsize=5, rotation=70)
-ax.text(-35.6, -30.5, r"$4,000$ km", fontsize=5, rotation=70)
-ax.text(-46.6, -31.5, r"$5,000$ km", fontsize=5, rotation=70)
-ax.text(-63.5, -48.5, r"$6,000$ km", fontsize=5, rotation=75)
-ax.text(-79.3, -52.5, r"$7,000$ km", fontsize=5, rotation=62)
-ax.text(-89.5, -45.3, r"$8,000$ km", fontsize=5, rotation=53)
-ax.text(-89.5, -27.3, r"$9,000$ km", fontsize=5, rotation=55)
-ax.set_extent([-97, 65, -63, 0], crs=ccrs.PlateCarree())
-
-ax.legend(handles, labels, ncols=3, fontsize=9, shadow=True) 
-fig.savefig('../article_figs/Figure3.png', dpi=300,
-            facecolor=(1, 0, 0, 0))
-
 # %% Results ECDF
 frag_into_NPs = np.load('../data/frag_into_NPs.npy', allow_pickle=True)[()]
 
@@ -358,25 +300,3 @@ ax.grid()
 fig.savefig('../article_figs/Figure4.png', dpi=300,
             facecolor=(1, 0, 0, 0))
 
-# %%
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.stats import kde
-
-# Assuming `x` and `y` are your data points
-x, y = np.random.normal(size=(2, 1000))
-
-# Perform a kernel density estimate on the data
-k = kde.gaussian_kde([x, y])
-xi, yi = np.mgrid[x.min():x.max():100j, y.min():y.max():100j]
-zi = k(np.vstack([xi.flatten(), yi.flatten()]))
-
-# Find density level that includes 90% of the particles
-zi_sorted = np.sort(zi.flatten())
-cumulative_zi = np.cumsum(zi_sorted)
-level = zi_sorted[np.where(cumulative_zi >= cumulative_zi[-1] * 0.9)[0][0]]
-
-# Plot contours at this density level
-plt.contour(xi, yi, zi.reshape(xi.shape), levels=[level])
-
-plt.show()

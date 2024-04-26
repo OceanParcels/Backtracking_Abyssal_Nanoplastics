@@ -25,7 +25,10 @@ List of most important scripts with a short description.
 5. [`stitch_together_output_files.ipynb`](simulation/stitch_together_output_files.ipynb): notebook to concatenate the output files of simulations that got interrupted.
 
 #### [Analysis](analysis/)
+
+The first script that you need to run to save the data used for plotting and the rest of the scriots are: `vertical_histograms.py` and `size_distribution.py`.
 1. [`analysis_functions.py`](analysis\analysis_functions.py): functions used across analysis scripts.
+2. [`Map_origin_particles_surface.ipynb`](analysis\Map_origin_particles_surface.ipynb): Figure 3 notebook.
 2. [`size_distribution.py`](analysis/size_distribution.py): computes the size distributions at the surface and also plots the distribution and locations at the surface when they started to sink.
 3. [`supplemnetary_material_plots.ipynb`](analysis/supplementary_material_plots.ipynb): Notebook to analyze the simulations which considered three maximum size classes $k$.
 4. [`terminal_velocity[Range-of-validity].ipynb`](analysis/terminal_velocity[Range-of-validity].ipynb): Notebook analyzing the terminal velocity for different sizes of PET plastic particles in the ocean.
@@ -44,7 +47,7 @@ List of most important scripts with a short description.
 The figures are in [`article_figs`](article_figs/). The figures with their respective path to script or notebook where they were created are listed below.
 - **Figure 1**: [`terminal_velocity[Range-of-validity].ipynb`](analysis/terminal_velocity[Range-of-validity].ipynb)
 - **Figure 2**: Not in repository. It was made in specialized software.
-- **Figure 3**: [`size_distribution.py`](analysis/size_distribution.py)
+- **Figure 3**: [`Map_origin_particles_surface.ipynb`](Map_origin_particles_surface.ipynb)
 - **Figure 4**: [`size_distribution.py`](analysis/size_distribution.py)
 - **Figure 5**: [`vertical_histograms.py`](analysis/vertical_histograms.py)
 - **Figure 6**: [`size_distribution.py`](analysis/size_distribution.py)
