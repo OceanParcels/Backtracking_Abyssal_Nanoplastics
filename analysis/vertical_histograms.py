@@ -15,7 +15,7 @@ from tqdm import tqdm
 from datetime import datetime
 import analysis_functions as funk
 
-run_for_loop = True
+run_for_loop = False
 
 # Define initial conditions
 initial_depth = -5000  # int(sys.argv[1])  # 5 # 60 # 5179
@@ -158,8 +158,7 @@ for j, ft in enumerate(simulations):
                ha='right')
     ax[j].set_yticks([-5500, -2500, 0])
     ax[j].grid()
-
-ax[1].set_ylabel('Depth (m)')
+    ax[j].set_ylabel('Depth (m)')
 
 fig.colorbar(im, ax=ax[-1], orientation='horizontal',
              extend='max', label='Depth Probability of Nanoplastics')
@@ -172,7 +171,8 @@ fig.savefig('../article_figs/Figure5.png', dpi=300,
 
 # %% Depth vs displacement Plot
 # '-', '--', '-.', ':', 'None', ' ', '', 'solid', 'dashed', 'dashdot', 'dotted'
-marker = itertools.cycle(('v', 'h', 'd', 'o', 'X', 'P', '^', 's'))
+marker = itertools.cycle(('o', 'd', 'X', 's'))
+# marker = itertools.cycle(('v', 'h', 'd', 'o', 'X', 'P', '^', 's'))
 
 fig = plt.figure(figsize=(8, 4))
 gs = GridSpec(2, 2, width_ratios=[4, 1], height_ratios=[1, 4], wspace=0.01,
@@ -304,50 +304,6 @@ ax[2].text(7500, 0, r'C', fontsize=12,
                ha='right')
 
 fig.savefig('../article_figs/ECDF_nanoparticles', dpi=300,
-            facecolor=(1, 0, 0, 0))
-
-# %% FIGURE S2 - Maps of fragmenting location
-marker = itertools.cycle(('v', 'h', 'd', 'o', 'X', 'P', '^', 's'))
-fig, ax = funk.bathymetry_plot(alpha=0.1)
-
-for j, ft in enumerate(simulations[::-1]):
-    ax.scatter(frag_into_NPs[ft]['lon'], frag_into_NPs[ft]['lat'], zorder=2,
-               s=20,
-               label=f"$\lambda_f$ = {ft} days",
-               marker=next(marker))
-
-ax.scatter(origin[0], origin[1], zorder=5,
-           label='Sampling Location', marker='*', s=80, edgecolors='k')
-
-for r in range(1,10):
-    circle_points = geodesic.Geodesic().circle(lon=origin[0], lat=origin[1],
-                                               radius=r*1e6,
-                                               n_samples=100,
-                                               endpoint=False)
-    geom = shapely.geometry.Polygon(circle_points)
-    ax.add_geometries((geom,), crs=ccrs.PlateCarree(), facecolor='none',
-                      edgecolor='black', linewidth=1., zorder=3, ls='--')
-
-# ax.set_title('Where do the particles fragment into Nanoparticles?')
-handles, labels = ax.get_legend_handles_labels()
-handles = handles[::-1]
-labels = labels[::-1]
-
-ax.text(3.3, -24.5, r"$1,000$ km", fontsize=5)
-ax.text(-14.5, -30.5, r"$2,000$ km", fontsize=5, rotation=70)
-ax.text(-25., -30.5, r"$3,000$ km", fontsize=5, rotation=70)
-ax.text(-35.6, -30.5, r"$4,000$ km", fontsize=5, rotation=70)
-ax.text(-46.6, -31.5, r"$5,000$ km", fontsize=5, rotation=70)
-ax.text(-63.5, -48.5, r"$6,000$ km", fontsize=5, rotation=75)
-ax.text(-79.3, -52.5, r"$7,000$ km", fontsize=5, rotation=62)
-ax.text(-89.5, -45.3, r"$8,000$ km", fontsize=5, rotation=53)
-ax.text(-89.5, -27.3, r"$9,000$ km", fontsize=5, rotation=55)
-
-ax.set_extent([-97, 60, -65, 0], crs=ccrs.PlateCarree())
-
-ax.legend(handles, labels, ncols=3, fontsize=9, shadow=True, loc='upper left')
-
-fig.savefig('../article_figs/FigureS2.png', dpi=300,
             facecolor=(1, 0, 0, 0))
 
 # %%

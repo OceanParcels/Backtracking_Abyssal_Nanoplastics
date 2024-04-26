@@ -54,7 +54,7 @@ The figures are in [`article_figs`](article_figs/). The figures with their respe
 
 **Supplementary Information Figures**
 - **Figure S1**: [`supplementary_material_plots.ipynb`](analysis/supplementary_material_plots.ipynb)
-- **Figure S2**: [`vertical_histograms.py`](analysis/vertical_histograms.py)
+- **Figure S2**: [`Map_origin_particles_surface.ipynb`](Map_origin_particles_surface.ipynb)
 
 ## Data Availability
 The data will be made available with its own DOI, when the review process is over.

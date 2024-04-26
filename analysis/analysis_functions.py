@@ -156,7 +156,7 @@ colors_bathy = sns.mpl_palette('cmo.ice_r', n_colors=8)
 cmap_bathy = sns.mpl_palette('cmo.ice', n_colors=8, as_cmap=True)
 
 
-def bathymetry_plot(figsize=(13, 7),alpha=1., ):
+def bathymetry_plot(figsize=(13, 7),alpha=1., land_zorder=5):
 
     fig = plt.figure(figsize=figsize)
     ax = plt.axes(projection=ccrs.PlateCarree())
@@ -172,7 +172,8 @@ def bathymetry_plot(figsize=(13, 7),alpha=1., ):
     ax.add_feature(cartopy.feature.NaturalEarthFeature(category='physical',
                                                        name='land', 
                                                        scale='110m'),
-                                                       color='black')
+                                                       color='black',
+                                                       zorder=land_zorder)
 
     gl = ax.gridlines(draw_labels=True)
     gl.right_labels = False

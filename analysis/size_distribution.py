@@ -36,6 +36,7 @@ for ft in tqdm(simulations):
     # print('Computing fragmentation timescale: ', ft)
     local_path = f'/storage/shared/oceanparcels/output_data/data_Claudio/hc13_3/hc13_{ft}.zarr'
     sim = xr.open_zarr(local_path)
+    sim = sim.where(sim.time >= np.datetime64('2007-01-01'), drop=True) # analysis stops at 2007-01-01
 
     # loading fields as np arrays to do some nasty indexing
     radiuses = sim['radius'].values
@@ -167,75 +168,13 @@ ax[2].text(6800, 0, r'C', fontsize=12,
 fig.savefig('../article_figs/ECDF_surface', dpi=300,
             facecolor=(1, 0, 0, 0))
 
-
-# %% Results ECDF
-frag_into_NPs = np.load('../data/frag_into_NPs.npy', allow_pickle=True)[()]
-
-fig, ax = plt.subplots(1, 2, figsize=(8, 3.5), tight_layout=True)
-
-ax[0].axvline(initial_depth, ls=':', color='k')
-ax[0].text(initial_depth - 200, 0.65, r'Sampling Depth', fontsize=6, color='k', rotation=-90)
-ax[0].axvline(0, ls=':', color='k')
-ax[0].text(0-200, 0.65, r'Surface', fontsize=6, color='k', rotation=-90)
-
-ax[1].axvline(1e-6, ls=':', color='black')
-ax[1].axvline(1e-4, ls=':', label=r"Fragmentation limit", color='red')
-ax[1].text(1e-6, 0.08, r"1 $\mu m$ Limit", fontsize=6, color='k', rotation=-90)
-ax[1].text(1.1e-4, 0.01, r"Fragmentation Limit", fontsize=6, color='r', rotation=-90)
-
-for j, ft in enumerate(simulations[::-1]):
-
-    x, y = funk.ecdf(frag_into_NPs[ft]['depths'], normalized=True,
-                     invert=False)
-    ax[0].plot(x, y, drawstyle='steps-post', label=f'$\lambda_f$ = {ft} days')
-    
-    x, y = funk.ecdf(frag_into_NPs[ft]['particle_index'], normalized=True,
-                     invert=False)
-    
-    x, y = funk.ecdf(surface_events[ft]['radius'], normalized=True)
-    ax[1].plot(x, y, drawstyle='steps-post')
-
-
-handles, labels = ax[0].get_legend_handles_labels()
-handles = handles[::-1]
-labels = labels[::-1]
-
-ax[0].legend(handles, labels, fontsize=7, shadow=True, ncol=2,
-         loc='best')
-
-ax[1].legend(handles, labels, fontsize=7, shadow=True, ncol=1,
-         loc='best')
-
-ax[0].set_xlabel('$R < 1\ \mu m$ Fragmentation Depth, $z$ [m]')
-ax[0].set_ylabel(r'ECDF: $P(x \leq z)$')
-
-ax[1].semilogx()
-ax[1].set_xlabel('Surface Particles Radius, $R$ [m]')
-ax[1].set_ylabel(r'ECDF: $P(x \leq R)$')
-
-gridy = np.linspace(0, 1, 11)
-gridx = [500, 1000] + [i for i in range(2000, 10000, 2000)]
-
-ax[0].set_yticks(gridy)
-ax[1].set_yticks(gridy)
-
-ax[0].grid()
-ax[1].grid()
-
-# ax[0].text(-5500, 0.98, r'A', fontsize=12,
-#                ha='right')
-# ax[1].text(1e-7, 0.98, r'B', fontsize=12,
-#                ha='right')
-
-# fig.savefig('../article_figs/ECDFs2.png', dpi=300,
-#             facecolor=(1, 0, 0, 0))
 # %% FIGURE 6 -
 fig, ax = plt.subplots(1, 1, figsize=(4, 3.5), tight_layout=True)
 
-ax.axvline(initial_depth, ls=':', color='k')
+ax.axvline(initial_depth, ls='-', color='k', lw=1)
 ax.text(initial_depth - 200, 0.65, r'Sampling Depth', fontsize=6, color='k', rotation=-90)
-ax.axvline(0, ls=':', color='k')
-ax.text(0-200, 0.65, r'Surface', fontsize=6, color='k', rotation=-90)
+ax.axvline(0, ls='-', color='k', lw=1)
+ax.text(0-220, 0.7, r'Surface', fontsize=6, color='k', rotation=-90)
 
 colors = plt.get_cmap('tab10').colors
 line_styles = ['-', '--', '-.', ':']
@@ -259,7 +198,7 @@ ax.set_ylabel(r'ECDF: $P(x \leq z)$')
 
 gridy = np.linspace(0, 1, 11)
 ax.set_yticks(gridy)
-ax.grid()
+ax.grid(linestyle=':')
 
 fig.savefig('../article_figs/Figure6.png', dpi=300,
             facecolor=(1, 0, 0, 0))
@@ -268,10 +207,10 @@ fig.savefig('../article_figs/Figure6.png', dpi=300,
 
 fig, ax = plt.subplots(1, 1, figsize=(4, 3.5), tight_layout=True)
 
-ax.axvline(1e-6, ls=':', color='black')
-ax.axvline(1e-4, ls=':', color='red')
+ax.axvline(1e-6, ls='-', lw=1, color='black')
+ax.axvline(1e-4, ls='-', lw=1, color='black')
 ax.text(1e-6, 0.08, r"1 $\mu m$ Limit", fontsize=6, color='k', rotation=-90)
-ax.text(1.1e-4, 0.01, r"Fragmentation Limit", fontsize=6, color='r', rotation=-90)
+ax.text(1.1e-4, 0.01, r"Fragmentation Limit", fontsize=6, color='black', rotation=-90)
 
 colors = plt.get_cmap('tab10').colors
 line_styles = ['-', '--', '-.', ':']
@@ -295,8 +234,10 @@ ax.set_ylabel(r'ECDF: $P(x \leq R)$')
 
 gridy = np.linspace(0, 1, 11)
 ax.set_yticks(gridy)
-ax.grid()
+ax.grid(linestyle=':')
 
 fig.savefig('../article_figs/Figure4.png', dpi=300,
             facecolor=(1, 0, 0, 0))
 
+
+# %%
