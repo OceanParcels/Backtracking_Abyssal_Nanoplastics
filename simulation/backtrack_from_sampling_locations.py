@@ -30,11 +30,13 @@ Test_run = False
 arguments = ArgumentParser()
 arguments.add_argument('-ft', '--frag_timescale', type=int, default=23000, help='Fragmentation timescale (days)')
 arguments.add_argument('-bm', '--brownian_motion', type=int, help='Brownian motion on (1) or off (0)')
+arguments.add_argument('-s', '--seed', type=int, default=42, help='Seed for random number generator (int)')
 
 args = arguments.parse_args()
 
 frag_timescale = args.frag_timescale
 Brownian_on = args.brownian_motion
+seed = args.seed
 
 # Initial conditions
 # HC13 depth: 5000 m
@@ -83,7 +85,7 @@ else:
     
     file_range = range(6, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/abyssal_nps_outputs/hc13_{frag_timescale}_BM_{Brownian_on}.zarr'
+        f'data_Claudio/abyssal_nps_outputs/output_23000/hc13_{frag_timescale}_BM_{Brownian_on}_{seed}.zarr'
     chunking_express = 500
 
 print(output_path, Brownian_on)
@@ -232,7 +234,7 @@ if Brownian_on == 1:
 # %%Particle Set #
 ###############################################################################
 
-np.random.seed(42)
+np.random.seed(seed)
 lon_cluster = [lon_sample]*n_points + np.random.normal(loc=0, scale=0.01, size=n_points)
 lat_cluster = [lat_sample]*n_points + np.random.normal(loc=0, scale=0.01, size=n_points)
 lon_cluster = np.array(lon_cluster) 

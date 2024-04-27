@@ -47,14 +47,14 @@ The first script that you need to run to save the data used for plotting and the
 The figures are in [`article_figs`](article_figs/). The figures with their respective path to script or notebook where they were created are listed below.
 - **Figure 1**: [`terminal_velocity[Range-of-validity].ipynb`](analysis/terminal_velocity[Range-of-validity].ipynb)
 - **Figure 2**: Not in repository. It was made in specialized software.
-- **Figure 3**: [`Map_origin_particles_surface.ipynb`](Map_origin_particles_surface.ipynb)
+- **Figure 3**: [`Map_origin_particles_surface.ipynb`](analysis/Map_origin_particles_surface.ipynb)
 - **Figure 4**: [`size_distribution.py`](analysis/size_distribution.py)
 - **Figure 5**: [`vertical_histograms.py`](analysis/vertical_histograms.py)
 - **Figure 6**: [`size_distribution.py`](analysis/size_distribution.py)
 
 **Supplementary Information Figures**
 - **Figure S1**: [`supplementary_material_plots.ipynb`](analysis/supplementary_material_plots.ipynb)
-- **Figure S2**: [`Map_origin_particles_surface.ipynb`](Map_origin_particles_surface.ipynb)
+- **Figure S2**: [`Map_origin_particles_surface.ipynb`](analysis/Map_origin_particles_surface.ipynb)
 
 ## Data Availability
 The data will be made available with its own DOI, when the review process is over.
