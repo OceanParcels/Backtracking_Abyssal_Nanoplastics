@@ -96,6 +96,11 @@ for ft in simulations:
 
 df.to_csv('../data/size_distribution_surface.csv')
 # df.to_latex('../article_figs/surface_events_numbers.tex') # to print in latex format and save in a file
+# %%
+# Load frag_into_NPs
+
+frag_into_NPs = np.load('../data/frag_into_NPs.npy', allow_pickle=True).item()
+
 
 # %% ecdf surfacetime and size distribution of particles at the surface
 
@@ -171,20 +176,21 @@ fig.savefig('../article_figs/ECDF_surface', dpi=300,
 # %% FIGURE 6 -
 fig, ax = plt.subplots(1, 1, figsize=(4, 3.5), tight_layout=True)
 
-ax.axvline(initial_depth, ls='-', color='k', lw=1)
+ax.axvline(initial_depth, ls='-', color='k', lw=0.5)
 ax.text(initial_depth - 200, 0.65, r'Sampling Depth', fontsize=6, color='k', rotation=-90)
-ax.axvline(0, ls='-', color='k', lw=1)
+ax.axvline(0, ls='-', color='k', lw=0.5)
 ax.text(0-220, 0.7, r'Surface', fontsize=6, color='k', rotation=-90)
 
 colors = plt.get_cmap('tab10').colors
-line_styles = ['-', '--', '-.', ':']
+line_styles = ['--', '-', ':', '-.']
 
 ax.set_prop_cycle(cycler(color=colors[:4]) + cycler(linestyle=line_styles))
 
 for j, ft in enumerate(simulations[::-1]):
     x, y = funk.ecdf(frag_into_NPs[ft]['depths'], normalized=True,
                      invert=False)
-    ax.plot(x, y, drawstyle='steps-post', label=f'$\lambda_f$ = {ft} days')
+    ax.plot(x, y, drawstyle='steps-post', label=f'$\lambda_f$ = {ft} days', 
+            zorder=5-j, lw=2)
     
 handles, labels = ax.get_legend_handles_labels()
 handles = handles[::-1]
@@ -207,19 +213,20 @@ fig.savefig('../article_figs/Figure6.png', dpi=300,
 
 fig, ax = plt.subplots(1, 1, figsize=(4, 3.5), tight_layout=True)
 
-ax.axvline(1e-6, ls='-', lw=1, color='black')
-ax.axvline(1e-4, ls='-', lw=1, color='black')
-ax.text(1e-6, 0.08, r"1 $\mu m$ Limit", fontsize=6, color='k', rotation=-90)
-ax.text(1.1e-4, 0.01, r"Fragmentation Limit", fontsize=6, color='black', rotation=-90)
+ax.axvline(1e-6, ls='-', lw=0.5, color='black')
+ax.axvline(1e-4, ls='-', lw=0.5, color='black')
+ax.text(1e-6, 0.08, r"Colloid Limit", fontsize=6, color='k', rotation=-90)
+ax.text(1.e-4, 0.01, r"Fragmentation Limit", fontsize=6, color='black', rotation=-90)
 
 colors = plt.get_cmap('tab10').colors
-line_styles = ['-', '--', '-.', ':']
+line_styles = ['--', '-', ':', '-.']
 
 ax.set_prop_cycle(cycler(color=colors[:4]) + cycler(linestyle=line_styles))
 
 for j, ft in enumerate(simulations[::-1]):
     x, y = funk.ecdf(surface_events[ft]['radius'], normalized=True)
-    ax.plot(x, y, drawstyle='steps-post', label=f'$\lambda_f$ = {ft} days')
+    ax.plot(x, y, drawstyle='steps-post', label=f'$\lambda_f$ = {ft} days',
+            lw=2)
     
 handles, labels = ax.get_legend_handles_labels()
 handles = handles[::-1]
