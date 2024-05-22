@@ -16,13 +16,13 @@ cd ${HOME}/3DModelling_SouthAtlantic/simulation
 
 # first agument is the fragmentation timescale (int) second argument is the boolean for the fragmentation kernel
 
-python3 backtrack_from_sampling_locations.py -ft 1000 -bm 1 -s 14
+python3 backtrack_from_sampling_locations.py -ft 1000 -bm 1 -s 14 &
 sleep 20
-python3 backtrack_from_sampling_locations.py -ft 1000 -bm 1 -s 78
+python3 backtrack_from_sampling_locations.py -ft 1000 -bm 1 -s 78 &
 sleep 20
-python3 backtrack_from_sampling_locations.py -ft 1000 -bm 1 -s 27
+python3 backtrack_from_sampling_locations.py -ft 1000 -bm 1 -s 27 &
 sleep 20
-python3 backtrack_from_sampling_locations.py -ft 1000 -bm 1 -s 62
+python3 backtrack_from_sampling_locations.py -ft 1000 -bm 1 -s 62 &
 sleep 20
 python3 backtrack_from_sampling_locations.py -ft 1000 -bm 1 -s 34
 

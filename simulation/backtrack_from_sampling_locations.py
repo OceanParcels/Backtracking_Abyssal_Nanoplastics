@@ -78,14 +78,14 @@ if Test_run:
 else:
     # Number of particles and simulation time
     n_points = 8192 #2^13
-    sim_time = 4484 # 4484
-    # From 11 October 2006 to and including 20 January 2019 (forward).
-    # Result: 4485 days or 12 years, 3 months, 10 days including the end date.
+    sim_time = 4403 # 4484
+    # From 1 January 2007 to and including 20 January 2019 (forward).
+    # Result: 4403 days or 12 years and 20 days.
     end_time = datetime.strptime('2007-01-01 12:00:00', '%Y-%m-%d %H:%M:%S')
     
     file_range = range(6, 21)
     output_path = '/storage/shared/oceanparcels/output_data/' + \
-        f'data_Claudio/abyssal_nps_outputs/output_23000/hc13_{frag_timescale}_BM_{Brownian_on}_{seed}.zarr'
+        f'data_Claudio/abyssal_nps_outputs/output_{frag_timescale}/hc13_{frag_timescale}_BM_{Brownian_on}_{seed}.zarr'
     chunking_express = 500
 
 print(output_path, Brownian_on)
@@ -190,7 +190,8 @@ dimensions = {'U': {'lon': 'glamf',
 
 # indices = {'lat': range(0, 1700), 'lon': range(200, 4321)}
 # indices = {'lat': range(200, 1700), 'lon': range(2300, 4321)} # domain for frag timescale < 400
-indices = {'lat': range(200, 1700)} # whole domain for frag timescale >= 400
+# indices = {'lat': range(200, 1700)} # whole domain for frag timescale >= 400
+indices = {'lat': range(500, 1500), 'lon': range(2300, 4321)}
 
 fieldset = FieldSet.from_nemo(filenames, variables, dimensions,
                               allow_time_extrapolation=False,
