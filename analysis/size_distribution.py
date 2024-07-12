@@ -34,7 +34,7 @@ surface_events = {}
 
 for ft in tqdm(simulations):
     # print('Computing fragmentation timescale: ', ft)
-    local_path = f'/storage/shared/oceanparcels/output_data/data_Claudio/hc13_3/hc13_{ft}.zarr'
+    local_path = f'../data/simulations/hc13_{ft}.zarr'
     sim = xr.open_zarr(local_path)
     sim = sim.where(sim.time >= np.datetime64('2007-01-01'), drop=True) # analysis stops at 2007-01-01
 

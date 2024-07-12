@@ -46,7 +46,7 @@ if run_for_loop:
         sim_dict = {}
 
         # Load the data from the simulation
-        local_path = f'/storage/shared/oceanparcels/output_data/data_Claudio/hc13_3/hc13_{ft}.zarr'
+        local_path = f'../data/simulations/hc13_{ft}.zarr'
         sim = xr.open_zarr(local_path)
         sim = sim.where(sim.time >= np.datetime64('2007-01-01'), drop=True) # analysis stops at 2007-01-01
         nano = sim.where(sim.radius < 1e-6/2, drop=False)
