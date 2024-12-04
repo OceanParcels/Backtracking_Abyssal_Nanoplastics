@@ -1,11 +1,10 @@
 # Code for "Identifying the Origins of Nanoplastics in the Abyssal South Atlantic Using Backtracking Lagrangian Simulations with Fragmentation"
 
-This repository contains code for the Lagrangian simulations and the analysis for the manuscript submitted to [Ocean and Coastal Research Journal](https://www.ocr-journal.org/).
+This repository contains code for the Lagrangian simulations and the analysis for the published in Ocean and Coastal Research Journal. DOI: [10.1590/2675-2824072.24008](https://doi.org/10.1590/2675-2824072.24008).
 
 ## Getting Started
 
 To reproduce the simulations and the analysis, you will need to clone this repository to your local machine. You can do this by running the following command in your terminal:
-
 
 `git clone https://github.com/OceanParcels/Backtracking_Abyssal_Nanoplastics.git`
 
